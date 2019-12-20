@@ -6,7 +6,9 @@ It can be used to implement firmware upgrade (OTA) or to load different (multipl
 
 Interactive mode is also provided which enables the user to select which application to load and execute from the list of stored applications.
 
-More details about **Kboot** are available in the **README.md** in `src/bootloader` directory.
+---
+> More details about **Kboot** are available in the [**README.md**](https://github.com/loboris/Kboot/blob/master/src/bootloader/README.md) in `src/bootloader` directory.
+---
 
 <br>
 
