@@ -94,8 +94,8 @@ The format of each application entry in configuration sector is as follows:
 
 _Notes:_<br>
 Configuration entry **ID** must have a value of **`0x5AA5D0C0`** for entry to recognized as valid.<br>
-Application addres must be in range **``0x80000`** ~ **`0x800000`** ( 512KB ~ 8MB ).<br>
-Application size must be in range **``0x4000`** ~ **`0x300000`** ( 16KB ~ 3MB ).<br>
+Application addres must be in range **`0x80000`** ~ **`0x800000`** ( 512KB ~ 8MB ).<br>
+Application size must be in range **`0x4000`** ~ **`0x300000`** ( 16KB ~ 3MB ).<br>
 Application CRC32 value is used only if **CRC32** flag is set.<br><br>
 
 If **config flags** at offset `0x100` in **configuration sector** is set to configuration entry **ID** (**`0x5AA5D0C0`**), **interractive mode** will be disabled, **boot Pin* and nothing will be printed during the boot process.
