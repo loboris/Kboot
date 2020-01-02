@@ -9,12 +9,12 @@ MEMORY
    * Memory with CPU cache.
    * 64K CPU SRAM
    */
-  ram (wxari) : ORIGIN = 0x805E0000, LENGTH = 0x00008000
+  ram (wxa!ri) : ORIGIN = 0x80000000, LENGTH = 0x00008000
   /*
    * Memory without CPU cache
    * 64K CPU SRAM
   */
-  ram_nocache (wxari) : ORIGIN = 0x405E0000, LENGTH = 0x00008000
+  ram_nocache (wxa!ri) : ORIGIN = 0x40000000, LENGTH = 0x00008000
 }
 
 PROVIDE( _rom_start  = ORIGIN(rom) );
@@ -23,6 +23,8 @@ PROVIDE( _ram_start  = ORIGIN(ram) );
 PROVIDE( _ram_end    = ORIGIN(ram) + LENGTH(ram) );
 PROVIDE( _io_start   = ORIGIN(ram_nocache) );
 PROVIDE( _io_end     = _io_start + LENGTH(ram_nocache) );
+PROVIDE( _stack_size = 1 << 15 );
+PROVIDE( _stack_start = 0x80540000 );
 
 
 /*

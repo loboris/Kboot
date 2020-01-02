@@ -1,4 +1,4 @@
-# Copyright 2018 Canaan Inc.
+# Copyright 2019 LoBo (https://github.com/loboris)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,26 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#include "encoding.h"
-
-# define LREG ld
-# define SREG sd
-# define LFREG flw
-# define SFREG fsw
-# define REGBYTES 8
-# define STKSHIFT 15
-
 
 .section .text.start, "ax", @progbits
 .globl _start
 _start:
-#  csrw mideleg, 0
-#  csrw medeleg, 0
-#  csrw mie, 0
-#  csrw mip, 0
-#  li t0, MSTATUS_FS
-#  csrs mstatus, t0
-
-#  ROM set stack pointer is used
+#  Jump directly to 'main'
 
   j main

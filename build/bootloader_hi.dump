@@ -1,0 +1,2439 @@
+
+bootloader_hi:     file format elf64-littleriscv
+
+
+Disassembly of section .text:
+
+00000000805e0000 <_start>:
+    805e0000:	0140006f          	j	805e0014 <main>
+    805e0004:	6f6f624b          	fnmsub.q	ft4,ft10,fs6,fa3,unknown
+    805e0008:	5f74                	lw	a3,124(a4)
+    805e000a:	3176                	fld	ft2,376(sp)
+    805e000c:	342e                	fld	fs0,232(sp)
+    805e000e:	312e                	fld	ft2,232(sp)
+    805e0010:	0000                	unimp
+	...
+
+00000000805e0014 <main>:
+ * -------------------------------------------------------------
+ */
+
+//============
+int main(void)
+{
+    805e0014:	7119                	addi	sp,sp,-128
+    805e0016:	fc86                	sd	ra,120(sp)
+    805e0018:	f8a2                	sd	s0,112(sp)
+    805e001a:	f4a6                	sd	s1,104(sp)
+    805e001c:	f0ca                	sd	s2,96(sp)
+    805e001e:	ecce                	sd	s3,88(sp)
+    805e0020:	e8d2                	sd	s4,80(sp)
+    805e0022:	e4d6                	sd	s5,72(sp)
+    805e0024:	e0da                	sd	s6,64(sp)
+    805e0026:	fc5e                	sd	s7,56(sp)
+    805e0028:	f862                	sd	s8,48(sp)
+    805e002a:	f466                	sd	s9,40(sp)
+    805e002c:	f06a                	sd	s10,32(sp)
+    805e002e:	ec6e                	sd	s11,24(sp)
+    while(dst < &_ebss)
+        *dst++ = 0;
+    */
+
+    // Check the core we are running on
+    i = read_csr(mhartid);
+    805e0030:	f14027f3          	csrr	a5,mhartid
+    805e0034:	2781                	sext.w	a5,a5
+    805e0036:	00002717          	auipc	a4,0x2
+    805e003a:	f2f72523          	sw	a5,-214(a4) # 805e1f60 <i>
+    //--------------------------------------------------------
+    if (i != 0) {
+    805e003e:	44079663          	bnez	a5,805e048a <main+0x476>
+    // ============================
+    // ==== Running on core #0 ====
+    // ============================
+
+    // wait for synchronization with core #1
+    while (core0_sync == 0) {
+    805e0042:	00002797          	auipc	a5,0x2
+    805e0046:	ef678793          	addi	a5,a5,-266 # 805e1f38 <core0_sync>
+    805e004a:	4398                	lw	a4,0(a5)
+    805e004c:	e701                	bnez	a4,805e0054 <main+0x40>
+        asm("nop");
+    805e004e:	0001                	nop
+    while (core0_sync == 0) {
+    805e0050:	4398                	lw	a4,0(a5)
+    805e0052:	df75                	beqz	a4,805e004e <main+0x3a>
+    }
+
+    // === Printing and Flash XiP mode were initialized in stage_0 ===
+
+    // Check if interractive mode can be enabled
+    boot_pin = 1;
+    805e0054:	4785                	li	a5,1
+    805e0056:	00002717          	auipc	a4,0x2
+    805e005a:	aaf72923          	sw	a5,-1358(a4) # 805e1b08 <boot_pin>
+    cfg_magic = cfg_flash_ptr[BOOT_CONFIG_ITEMS*8];
+    805e005e:	540047b7          	lui	a5,0x54004
+    805e0062:	1007a703          	lw	a4,256(a5) # 54004100 <_start-0x2c5dbf00>
+    print_enabled = (cfg_magic == MAGIC_ID) ? 0 : 1;
+    805e0066:	5aa5d7b7          	lui	a5,0x5aa5d
+    805e006a:	0c078793          	addi	a5,a5,192 # 5aa5d0c0 <_start-0x25b82f40>
+    805e006e:	40f706b3          	sub	a3,a4,a5
+    805e0072:	00d036b3          	snez	a3,a3
+    cfg_magic = cfg_flash_ptr[BOOT_CONFIG_ITEMS*8];
+    805e0076:	00002617          	auipc	a2,0x2
+    805e007a:	eae62923          	sw	a4,-334(a2) # 805e1f28 <cfg_magic>
+    print_enabled = (cfg_magic == MAGIC_ID) ? 0 : 1;
+    805e007e:	00002617          	auipc	a2,0x2
+    805e0082:	eed62523          	sw	a3,-278(a2) # 805e1f68 <print_enabled>
+    805e0086:	00002497          	auipc	s1,0x2
+    805e008a:	ee248493          	addi	s1,s1,-286 # 805e1f68 <print_enabled>
+    if (print_enabled) {
+    805e008e:	00f719e3          	bne	a4,a5,805e08a0 <main+0x88c>
+    805e0092:	00002417          	auipc	s0,0x2
+    805e0096:	ef643403          	ld	s0,-266(s0) # 805e1f88 <__TMC_END__+0x8>
+    LOG("\nK210 bootloader by LoBo v.1.4.1\n\n");
+
+    LOG("* Find applications in MAIN parameters\n");
+
+    // First we check the main config sector
+    app_flash_start = DEFAULT_APP_ADDR;
+    805e009a:	67c1                	lui	a5,0x10
+check_cfg:
+    // Check all boot entries
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+        get_params(i);
+
+        if ((cfg_magic & MAGIC_ID_MASK) == MAGIC_ID) {
+    805e009c:	5aa5d937          	lui	s2,0x5aa5d
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e00a0:	edb88b37          	lui	s6,0xedb88
+    app_flash_start = DEFAULT_APP_ADDR;
+    805e00a4:	00002717          	auipc	a4,0x2
+    805e00a8:	a2f72623          	sw	a5,-1492(a4) # 805e1ad0 <app_flash_start>
+    cfg_offset = 0;
+    805e00ac:	4601                	li	a2,0
+    805e00ae:	00002797          	auipc	a5,0x2
+    805e00b2:	e607af23          	sw	zero,-386(a5) # 805e1f2c <cfg_offset>
+    805e00b6:	00002c17          	auipc	s8,0x2
+    805e00ba:	e5ac0c13          	addi	s8,s8,-422 # 805e1f10 <cfg_address>
+    805e00be:	00002d97          	auipc	s11,0x2
+    805e00c2:	e72d8d93          	addi	s11,s11,-398 # 805e1f30 <cfg_size>
+    805e00c6:	00002d17          	auipc	s10,0x2
+    805e00ca:	e62d0d13          	addi	s10,s10,-414 # 805e1f28 <cfg_magic>
+    805e00ce:	00002a97          	auipc	s5,0x2
+    805e00d2:	e92a8a93          	addi	s5,s5,-366 # 805e1f60 <i>
+    805e00d6:	00002a17          	auipc	s4,0x2
+    805e00da:	a2aa0a13          	addi	s4,s4,-1494 # 805e1b00 <available_apps>
+    805e00de:	00002b97          	auipc	s7,0x2
+    805e00e2:	9f2b8b93          	addi	s7,s7,-1550 # 805e1ad0 <app_flash_start>
+    805e00e6:	00002997          	auipc	s3,0x2
+    805e00ea:	e4698993          	addi	s3,s3,-442 # 805e1f2c <cfg_offset>
+        if ((cfg_magic & MAGIC_ID_MASK) == MAGIC_ID) {
+    805e00ee:	0c090913          	addi	s2,s2,192 # 5aa5d0c0 <_start-0x25b82f40>
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e00f2:	320b0b13          	addi	s6,s6,800 # ffffffffedb88320 <context+0xffffffff6d5a6368>
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e00f6:	00002797          	auipc	a5,0x2
+    805e00fa:	e607a523          	sw	zero,-406(a5) # 805e1f60 <i>
+    805e00fe:	4581                	li	a1,0
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0100:	54004cb7          	lui	s9,0x54004
+    805e0104:	a819                	j	805e011a <main+0x106>
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0106:	2585                	addiw	a1,a1,1
+    805e0108:	00002717          	auipc	a4,0x2
+    805e010c:	e4b72c23          	sw	a1,-424(a4) # 805e1f60 <i>
+    805e0110:	479d                	li	a5,7
+    805e0112:	2eb7e063          	bltu	a5,a1,805e03f2 <main+0x3de>
+    805e0116:	0009a603          	lw	a2,0(s3)
+    offset = (i*32) + cfg_offset + 0x10; // 8bit offset in current config sector
+    805e011a:	0055979b          	slliw	a5,a1,0x5
+    805e011e:	9fb1                	addw	a5,a5,a2
+    805e0120:	0107881b          	addiw	a6,a5,16
+    offset = (i*8) + (cfg_offset / 4); // 32bit offset in current config sector
+    805e0124:	0026561b          	srliw	a2,a2,0x2
+    805e0128:	0035969b          	slliw	a3,a1,0x3
+    805e012c:	9eb1                	addw	a3,a3,a2
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e012e:	1802                	slli	a6,a6,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0130:	0016889b          	addiw	a7,a3,1
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0134:	0026851b          	addiw	a0,a3,2
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0138:	0036861b          	addiw	a2,a3,3
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e013c:	02085813          	srli	a6,a6,0x20
+    805e0140:	9866                	add	a6,a6,s9
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0142:	1682                	slli	a3,a3,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0144:	1882                	slli	a7,a7,0x20
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0146:	1502                	slli	a0,a0,0x20
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0148:	1602                	slli	a2,a2,0x20
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e014a:	00084803          	lbu	a6,0(a6)
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e014e:	01178e1b          	addiw	t3,a5,17
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0152:	9281                	srli	a3,a3,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0154:	0208d893          	srli	a7,a7,0x20
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0158:	9101                	srli	a0,a0,0x20
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e015a:	9201                	srli	a2,a2,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e015c:	068a                	slli	a3,a3,0x2
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e015e:	088a                	slli	a7,a7,0x2
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0160:	050a                	slli	a0,a0,0x2
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0162:	060a                	slli	a2,a2,0x2
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e0164:	1e02                	slli	t3,t3,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0166:	96e6                	add	a3,a3,s9
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e0168:	020e5e13          	srli	t3,t3,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e016c:	98e6                	add	a7,a7,s9
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e016e:	9566                	add	a0,a0,s9
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0170:	9666                	add	a2,a2,s9
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0172:	0006a303          	lw	t1,0(a3)
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0176:	4210                	lw	a2,0(a2)
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0178:	0008a883          	lw	a7,0(a7)
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e017c:	4108                	lw	a0,0(a0)
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e017e:	01cc86b3          	add	a3,s9,t3
+    805e0182:	00002717          	auipc	a4,0x2
+    805e0186:	d9070b23          	sb	a6,-618(a4) # 805e1f18 <cfg_info>
+    805e018a:	0006ce03          	lbu	t3,0(a3)
+    805e018e:	0127869b          	addiw	a3,a5,18
+    805e0192:	1682                	slli	a3,a3,0x20
+    805e0194:	9281                	srli	a3,a3,0x20
+    805e0196:	00002717          	auipc	a4,0x2
+    805e019a:	d9c701a3          	sb	t3,-637(a4) # 805e1f19 <cfg_info+0x1>
+    805e019e:	96e6                	add	a3,a3,s9
+    805e01a0:	0006ce03          	lbu	t3,0(a3)
+    805e01a4:	0137869b          	addiw	a3,a5,19
+    805e01a8:	1682                	slli	a3,a3,0x20
+    805e01aa:	9281                	srli	a3,a3,0x20
+    805e01ac:	00002717          	auipc	a4,0x2
+    805e01b0:	d7c70723          	sb	t3,-658(a4) # 805e1f1a <cfg_info+0x2>
+    805e01b4:	96e6                	add	a3,a3,s9
+    805e01b6:	0006ce03          	lbu	t3,0(a3)
+    805e01ba:	0147869b          	addiw	a3,a5,20
+    805e01be:	1682                	slli	a3,a3,0x20
+    805e01c0:	9281                	srli	a3,a3,0x20
+    805e01c2:	00002717          	auipc	a4,0x2
+    805e01c6:	d5c70ca3          	sb	t3,-679(a4) # 805e1f1b <cfg_info+0x3>
+    805e01ca:	96e6                	add	a3,a3,s9
+    805e01cc:	0006ce03          	lbu	t3,0(a3)
+    805e01d0:	0157869b          	addiw	a3,a5,21
+    805e01d4:	1682                	slli	a3,a3,0x20
+    805e01d6:	9281                	srli	a3,a3,0x20
+    805e01d8:	00002717          	auipc	a4,0x2
+    805e01dc:	d5c70223          	sb	t3,-700(a4) # 805e1f1c <cfg_info+0x4>
+    805e01e0:	96e6                	add	a3,a3,s9
+    805e01e2:	0006ce03          	lbu	t3,0(a3)
+    805e01e6:	0167869b          	addiw	a3,a5,22
+    805e01ea:	1682                	slli	a3,a3,0x20
+    805e01ec:	9281                	srli	a3,a3,0x20
+    805e01ee:	00002717          	auipc	a4,0x2
+    805e01f2:	d3c707a3          	sb	t3,-721(a4) # 805e1f1d <cfg_info+0x5>
+    805e01f6:	96e6                	add	a3,a3,s9
+    805e01f8:	0006ce03          	lbu	t3,0(a3)
+    805e01fc:	0177869b          	addiw	a3,a5,23
+    805e0200:	1682                	slli	a3,a3,0x20
+    805e0202:	9281                	srli	a3,a3,0x20
+    805e0204:	00002717          	auipc	a4,0x2
+    805e0208:	d1c70d23          	sb	t3,-742(a4) # 805e1f1e <cfg_info+0x6>
+    805e020c:	96e6                	add	a3,a3,s9
+    805e020e:	0006ce03          	lbu	t3,0(a3)
+    805e0212:	0187869b          	addiw	a3,a5,24
+    805e0216:	1682                	slli	a3,a3,0x20
+    805e0218:	9281                	srli	a3,a3,0x20
+    805e021a:	00002717          	auipc	a4,0x2
+    805e021e:	d1c702a3          	sb	t3,-763(a4) # 805e1f1f <cfg_info+0x7>
+    805e0222:	96e6                	add	a3,a3,s9
+    805e0224:	0006ce03          	lbu	t3,0(a3)
+    805e0228:	0197869b          	addiw	a3,a5,25
+    805e022c:	1682                	slli	a3,a3,0x20
+    805e022e:	9281                	srli	a3,a3,0x20
+    805e0230:	00002717          	auipc	a4,0x2
+    805e0234:	cfc70823          	sb	t3,-784(a4) # 805e1f20 <cfg_info+0x8>
+    805e0238:	96e6                	add	a3,a3,s9
+    805e023a:	0006ce03          	lbu	t3,0(a3)
+    805e023e:	01a7869b          	addiw	a3,a5,26
+    805e0242:	1682                	slli	a3,a3,0x20
+    805e0244:	9281                	srli	a3,a3,0x20
+    805e0246:	00002717          	auipc	a4,0x2
+    805e024a:	cdc70da3          	sb	t3,-805(a4) # 805e1f21 <cfg_info+0x9>
+    805e024e:	96e6                	add	a3,a3,s9
+    805e0250:	0006ce03          	lbu	t3,0(a3)
+    805e0254:	01b7869b          	addiw	a3,a5,27
+    805e0258:	1682                	slli	a3,a3,0x20
+    805e025a:	9281                	srli	a3,a3,0x20
+    805e025c:	00002717          	auipc	a4,0x2
+    805e0260:	cdc70323          	sb	t3,-826(a4) # 805e1f22 <cfg_info+0xa>
+    805e0264:	96e6                	add	a3,a3,s9
+    805e0266:	0006ce03          	lbu	t3,0(a3)
+    805e026a:	01c7869b          	addiw	a3,a5,28
+    805e026e:	1682                	slli	a3,a3,0x20
+    805e0270:	9281                	srli	a3,a3,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0272:	00002717          	auipc	a4,0x2
+    805e0276:	ca672b23          	sw	t1,-842(a4) # 805e1f28 <cfg_magic>
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e027a:	00002717          	auipc	a4,0x2
+    805e027e:	c8c72d23          	sw	a2,-870(a4) # 805e1f14 <cfg_crc>
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e0282:	96e6                	add	a3,a3,s9
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0284:	00002717          	auipc	a4,0x2
+    805e0288:	c9172623          	sw	a7,-884(a4) # 805e1f10 <cfg_address>
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e028c:	00002717          	auipc	a4,0x2
+    805e0290:	caa72223          	sw	a0,-860(a4) # 805e1f30 <cfg_size>
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0294:	00002717          	auipc	a4,0x2
+    805e0298:	cd070823          	sb	a6,-816(a4) # 805e1f64 <key>
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e029c:	00002717          	auipc	a4,0x2
+    805e02a0:	c9c703a3          	sb	t3,-889(a4) # 805e1f23 <cfg_info+0xb>
+    805e02a4:	0006c603          	lbu	a2,0(a3)
+    805e02a8:	01d7869b          	addiw	a3,a5,29
+    805e02ac:	1682                	slli	a3,a3,0x20
+    805e02ae:	9281                	srli	a3,a3,0x20
+    805e02b0:	00002717          	auipc	a4,0x2
+    805e02b4:	c6c70a23          	sb	a2,-908(a4) # 805e1f24 <cfg_info+0xc>
+    805e02b8:	96e6                	add	a3,a3,s9
+    805e02ba:	0006c683          	lbu	a3,0(a3)
+    805e02be:	27f9                	addiw	a5,a5,30
+    805e02c0:	1782                	slli	a5,a5,0x20
+    805e02c2:	9381                	srli	a5,a5,0x20
+    805e02c4:	00002717          	auipc	a4,0x2
+    805e02c8:	c6d700a3          	sb	a3,-927(a4) # 805e1f25 <cfg_info+0xd>
+    805e02cc:	97e6                	add	a5,a5,s9
+    805e02ce:	0007c783          	lbu	a5,0(a5)
+        if ((cfg_magic & MAGIC_ID_MASK) == MAGIC_ID) {
+    805e02d2:	ff037313          	andi	t1,t1,-16
+    cfg_info[15] = 0;
+    805e02d6:	00002717          	auipc	a4,0x2
+    805e02da:	c40708a3          	sb	zero,-943(a4) # 805e1f27 <cfg_info+0xf>
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e02de:	00002717          	auipc	a4,0x2
+    805e02e2:	c4f70423          	sb	a5,-952(a4) # 805e1f26 <cfg_info+0xe>
+        if ((cfg_magic & MAGIC_ID_MASK) == MAGIC_ID) {
+    805e02e6:	e32310e3          	bne	t1,s2,805e0106 <main+0xf2>
+            // *** Valid configuration found
+            LOG("    %u: '%15s', ", i, cfg_info);
+    805e02ea:	409c                	lw	a5,0(s1)
+    805e02ec:	1e078e63          	beqz	a5,805e04e8 <main+0x4d4>
+    805e02f0:	601c                	ld	a5,0(s0)
+    805e02f2:	00002617          	auipc	a2,0x2
+    805e02f6:	c2660613          	addi	a2,a2,-986 # 805e1f18 <cfg_info>
+    805e02fa:	00001517          	auipc	a0,0x1
+    805e02fe:	56e50513          	addi	a0,a0,1390 # 805e1868 <CSWTCH.3+0x70>
+    805e0302:	9782                	jalr	a5
+    805e0304:	0c800513          	li	a0,200
+    805e0308:	00001097          	auipc	ra,0x1
+    805e030c:	de4080e7          	jalr	-540(ra) # 805e10ec <usleep>
+            // Check if the Flash address is in range (512K ~ 8MB)
+            if ((cfg_address >= MIN_APP_FLASH_ADDR) && (cfg_address <= MAX_APP_FLASH_ADDR)) {
+    805e0310:	000c2583          	lw	a1,0(s8)
+    805e0314:	77c1                	lui	a5,0xffff0
+    805e0316:	007f0737          	lui	a4,0x7f0
+    805e031a:	9fad                	addw	a5,a5,a1
+    805e031c:	1af76563          	bltu	a4,a5,805e04c6 <main+0x4b2>
+    805e0320:	000da603          	lw	a2,0(s11)
+                // Address valid, check if the size is in range (16K ~ 3MB)
+                if ((cfg_size >= MIN_APP_FLASH_SIZE) && (cfg_size <= MAX_APP_FLASH_SIZE)) {
+    805e0324:	7771                	lui	a4,0xffffc
+    805e0326:	409c                	lw	a5,0(s1)
+    805e0328:	00c706bb          	addw	a3,a4,a2
+    805e032c:	002fc737          	lui	a4,0x2fc
+    805e0330:	26d76663          	bltu	a4,a3,805e059c <main+0x588>
+                    // Valid size
+                    LOG("@ 0x%08X, size=%u, ", cfg_address, cfg_size);
+    805e0334:	cf89                	beqz	a5,805e034e <main+0x33a>
+    805e0336:	601c                	ld	a5,0(s0)
+    805e0338:	00001517          	auipc	a0,0x1
+    805e033c:	54850513          	addi	a0,a0,1352 # 805e1880 <CSWTCH.3+0x88>
+    805e0340:	9782                	jalr	a5
+    805e0342:	0c800513          	li	a0,200
+    805e0346:	00001097          	auipc	ra,0x1
+    805e034a:	da6080e7          	jalr	-602(ra) # 805e10ec <usleep>
+                    /*
+                     * Basic check passed, now we can check the application's vilidity
+                     * If in interractive mode, all applications are checked,
+                     * otherwize, the application is checked only if flagged as active
+                     */
+                    if ((cfg_magic & CFG_APP_FLAG_ACTIVE) || (boot_pin == 0)) {
+    805e034e:	000d2603          	lw	a2,0(s10)
+    805e0352:	00167793          	andi	a5,a2,1
+    805e0356:	1a079963          	bnez	a5,805e0508 <main+0x4f4>
+    805e035a:	00001797          	auipc	a5,0x1
+    805e035e:	7ae78793          	addi	a5,a5,1966 # 805e1b08 <boot_pin>
+    805e0362:	439c                	lw	a5,0(a5)
+    805e0364:	1a078263          	beqz	a5,805e0508 <main+0x4f4>
+                        }
+                        LOG("App ok, ");
+                        available_apps[i] = 1;
+                    }
+                    else {
+                        LOG("not checked, ");
+    805e0368:	409c                	lw	a5,0(s1)
+    805e036a:	16078c63          	beqz	a5,805e04e2 <main+0x4ce>
+    805e036e:	601c                	ld	a5,0(s0)
+    805e0370:	00001517          	auipc	a0,0x1
+    805e0374:	57050513          	addi	a0,a0,1392 # 805e18e0 <CSWTCH.3+0xe8>
+    805e0378:	9782                	jalr	a5
+    805e037a:	0c800513          	li	a0,200
+    805e037e:	00001097          	auipc	ra,0x1
+    805e0382:	d6e080e7          	jalr	-658(ra) # 805e10ec <usleep>
+                    }
+                    // ** Check if this is an active config (bit #0 set)
+                    if ((cfg_magic & CFG_APP_FLAG_ACTIVE) == 0) {
+    805e0386:	000d2683          	lw	a3,0(s10)
+    805e038a:	409c                	lw	a5,0(s1)
+    805e038c:	8a85                	andi	a3,a3,1
+    805e038e:	2c068663          	beqz	a3,805e065a <main+0x646>
+                        LOG("NOT ");
+                    }
+                    else {
+                        if (app_flash_start == DEFAULT_APP_ADDR) {
+    805e0392:	000ba603          	lw	a2,0(s7)
+    805e0396:	66c1                	lui	a3,0x10
+    805e0398:	00d61e63          	bne	a2,a3,805e03b4 <main+0x3a0>
+                            app_size = cfg_size;
+    805e039c:	000da603          	lw	a2,0(s11)
+                            app_flash_start = cfg_address;
+    805e03a0:	000c2683          	lw	a3,0(s8)
+                            app_size = cfg_size;
+    805e03a4:	00001717          	auipc	a4,0x1
+    805e03a8:	74c72a23          	sw	a2,1876(a4) # 805e1af8 <app_size>
+                            app_flash_start = cfg_address;
+    805e03ac:	00001717          	auipc	a4,0x1
+    805e03b0:	72d72223          	sw	a3,1828(a4) # 805e1ad0 <app_flash_start>
+                        }
+                        if (boot_pin > 0) {
+    805e03b4:	00001717          	auipc	a4,0x1
+    805e03b8:	75470713          	addi	a4,a4,1876 # 805e1b08 <boot_pin>
+    805e03bc:	4314                	lw	a3,0(a4)
+    805e03be:	56069263          	bnez	a3,805e0922 <main+0x90e>
+                            // Active application found and cheched and not in interractive mode
+                            LOG("ACTIVE\n");
+                            break;
+                        }
+                    }
+                    LOG("ACTIVE\n");
+    805e03c2:	12078063          	beqz	a5,805e04e2 <main+0x4ce>
+    805e03c6:	601c                	ld	a5,0(s0)
+    805e03c8:	00001517          	auipc	a0,0x1
+    805e03cc:	53050513          	addi	a0,a0,1328 # 805e18f8 <CSWTCH.3+0x100>
+    805e03d0:	9782                	jalr	a5
+    805e03d2:	0c800513          	li	a0,200
+    805e03d6:	00001097          	auipc	ra,0x1
+    805e03da:	d16080e7          	jalr	-746(ra) # 805e10ec <usleep>
+    805e03de:	000aa583          	lw	a1,0(s5)
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e03e2:	479d                	li	a5,7
+    805e03e4:	2585                	addiw	a1,a1,1
+    805e03e6:	00002717          	auipc	a4,0x2
+    805e03ea:	b6b72d23          	sw	a1,-1158(a4) # 805e1f60 <i>
+    805e03ee:	d2b7f4e3          	bleu	a1,a5,805e0116 <main+0x102>
+        }
+    }
+
+    // check if any valid application was found
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+        if (available_apps[i]) break;
+    805e03f2:	000a4783          	lbu	a5,0(s4)
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e03f6:	00002717          	auipc	a4,0x2
+    805e03fa:	b6072523          	sw	zero,-1174(a4) # 805e1f60 <i>
+        if (available_apps[i]) break;
+    805e03fe:	38079d63          	bnez	a5,805e0798 <main+0x784>
+    805e0402:	001a4783          	lbu	a5,1(s4)
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0406:	4705                	li	a4,1
+    805e0408:	00002697          	auipc	a3,0x2
+    805e040c:	b4e6ac23          	sw	a4,-1192(a3) # 805e1f60 <i>
+        if (available_apps[i]) break;
+    805e0410:	38079463          	bnez	a5,805e0798 <main+0x784>
+    805e0414:	002a4783          	lbu	a5,2(s4)
+    805e0418:	50079363          	bnez	a5,805e091e <main+0x90a>
+    805e041c:	003a4783          	lbu	a5,3(s4)
+    805e0420:	36079763          	bnez	a5,805e078e <main+0x77a>
+    805e0424:	004a4783          	lbu	a5,4(s4)
+    805e0428:	6c079d63          	bnez	a5,805e0b02 <main+0xaee>
+    805e042c:	005a4783          	lbu	a5,5(s4)
+    805e0430:	6c079763          	bnez	a5,805e0afe <main+0xaea>
+    805e0434:	006a4783          	lbu	a5,6(s4)
+    805e0438:	6c079163          	bnez	a5,805e0afa <main+0xae6>
+    805e043c:	007a4783          	lbu	a5,7(s4)
+    805e0440:	6a079b63          	bnez	a5,805e0af6 <main+0xae2>
+    }
+    if ((app_flash_start == DEFAULT_APP_ADDR) && (i >= BOOT_CONFIG_ITEMS)) {
+    805e0444:	000ba703          	lw	a4,0(s7)
+    805e0448:	47a1                	li	a5,8
+    805e044a:	00002697          	auipc	a3,0x2
+    805e044e:	b0f6ab23          	sw	a5,-1258(a3) # 805e1f60 <i>
+    805e0452:	67c1                	lui	a5,0x10
+    805e0454:	58f71363          	bne	a4,a5,805e09da <main+0x9c6>
+        // No valid application found
+        if (cfg_offset == 0) {
+    805e0458:	0009a703          	lw	a4,0(s3)
+    805e045c:	409c                	lw	a5,0(s1)
+    805e045e:	6a071463          	bnez	a4,805e0b06 <main+0xaf2>
+            // no valid entry found in main config sector, check the backup one
+            LOG("\n* Find applications in BACKUP parameters\n");
+    805e0462:	cf89                	beqz	a5,805e047c <main+0x468>
+    805e0464:	601c                	ld	a5,0(s0)
+    805e0466:	00001517          	auipc	a0,0x1
+    805e046a:	4ba50513          	addi	a0,a0,1210 # 805e1920 <CSWTCH.3+0x128>
+    805e046e:	9782                	jalr	a5
+    805e0470:	0c800513          	li	a0,200
+    805e0474:	00001097          	auipc	ra,0x1
+    805e0478:	c78080e7          	jalr	-904(ra) # 805e10ec <usleep>
+            cfg_offset = 4096;
+    805e047c:	6785                	lui	a5,0x1
+    805e047e:	00002717          	auipc	a4,0x2
+    805e0482:	aaf72723          	sw	a5,-1362(a4) # 805e1f2c <cfg_offset>
+            //if (boot_pin == 0) {
+            //    cfg_magic = cfg_flash_ptr[4096+BOOT_CONFIG_ITEMS];
+            //    boot_pin = (cfg_magic == MAGIC_ID) ? 1 : 0;
+            //}
+            goto check_cfg;
+    805e0486:	6605                	lui	a2,0x1
+    805e0488:	b1bd                	j	805e00f6 <main+0xe2>
+        while (core1_sync == 0) {
+    805e048a:	00002797          	auipc	a5,0x2
+    805e048e:	ab278793          	addi	a5,a5,-1358 # 805e1f3c <core1_sync>
+    805e0492:	4398                	lw	a4,0(a5)
+        core0_sync = 1;
+    805e0494:	4685                	li	a3,1
+    805e0496:	00002617          	auipc	a2,0x2
+    805e049a:	aad62123          	sw	a3,-1374(a2) # 805e1f38 <core0_sync>
+        while (core1_sync == 0) {
+    805e049e:	e701                	bnez	a4,805e04a6 <main+0x492>
+            asm("nop");
+    805e04a0:	0001                	nop
+        while (core1_sync == 0) {
+    805e04a2:	4398                	lw	a4,0(a5)
+    805e04a4:	df75                	beqz	a4,805e04a0 <main+0x48c>
+        usleep(1000);
+    805e04a6:	3e800513          	li	a0,1000
+    805e04aa:	00001097          	auipc	ra,0x1
+    805e04ae:	c42080e7          	jalr	-958(ra) # 805e10ec <usleep>
+        asm("fence");   // D-Cache; this may not be necessary, but it looks it doesn't hurt if it is executed
+    805e04b2:	0ff0000f          	fence
+        asm("fence.i"); // I-Cache
+    805e04b6:	0000100f          	fence.i
+        asm ("jr %0" : : "r"(app_start));
+    805e04ba:	4785                	li	a5,1
+    805e04bc:	07fe                	slli	a5,a5,0x1f
+    805e04be:	8782                	jr	a5
+            asm("nop");
+    805e04c0:	0001                	nop
+    805e04c2:	0001                	nop
+    805e04c4:	bff5                	j	805e04c0 <main+0x4ac>
+                LOG("address Error!\n");
+    805e04c6:	409c                	lw	a5,0(s1)
+    805e04c8:	cf89                	beqz	a5,805e04e2 <main+0x4ce>
+    805e04ca:	601c                	ld	a5,0(s0)
+    805e04cc:	00001517          	auipc	a0,0x1
+    805e04d0:	44450513          	addi	a0,a0,1092 # 805e1910 <CSWTCH.3+0x118>
+    805e04d4:	9782                	jalr	a5
+    805e04d6:	0c800513          	li	a0,200
+    805e04da:	00001097          	auipc	ra,0x1
+    805e04de:	c12080e7          	jalr	-1006(ra) # 805e10ec <usleep>
+    805e04e2:	000aa583          	lw	a1,0(s5)
+    805e04e6:	b105                	j	805e0106 <main+0xf2>
+            if ((cfg_address >= MIN_APP_FLASH_ADDR) && (cfg_address <= MAX_APP_FLASH_ADDR)) {
+    805e04e8:	77c1                	lui	a5,0xffff0
+    805e04ea:	011788bb          	addw	a7,a5,a7
+    805e04ee:	007f07b7          	lui	a5,0x7f0
+    805e04f2:	c117eae3          	bltu	a5,a7,805e0106 <main+0xf2>
+                if ((cfg_size >= MIN_APP_FLASH_SIZE) && (cfg_size <= MAX_APP_FLASH_SIZE)) {
+    805e04f6:	77f1                	lui	a5,0xffffc
+    805e04f8:	9d3d                	addw	a0,a0,a5
+    805e04fa:	002fc7b7          	lui	a5,0x2fc
+    805e04fe:	e4a7f8e3          	bleu	a0,a5,805e034e <main+0x33a>
+    805e0502:	000aa583          	lw	a1,0(s5)
+    805e0506:	b101                	j	805e0106 <main+0xf2>
+    uint8_t  key = app_flash_ptr[cfg_address];          // must be 0, SHA256 key NOT specified
+    805e0508:	000c2783          	lw	a5,0(s8)
+    805e050c:	54000837          	lui	a6,0x54000
+    805e0510:	02079693          	slli	a3,a5,0x20
+    805e0514:	9281                	srli	a3,a3,0x20
+    805e0516:	96c2                	add	a3,a3,a6
+    if (key != 0) return 0;
+    805e0518:	0006c683          	lbu	a3,0(a3)
+    805e051c:	eeb9                	bnez	a3,805e057a <main+0x566>
+    val += app_flash_ptr[addr+2] << 16;
+    805e051e:	0037869b          	addiw	a3,a5,3
+    val += app_flash_ptr[addr+3] << 24;
+    805e0522:	0047851b          	addiw	a0,a5,4
+    val += app_flash_ptr[addr+2] << 16;
+    805e0526:	1682                	slli	a3,a3,0x20
+    val += app_flash_ptr[addr+3] << 24;
+    805e0528:	1502                	slli	a0,a0,0x20
+    uint32_t sz = flash2uint32(cfg_address+1);          // app size
+    805e052a:	0017859b          	addiw	a1,a5,1
+    val += app_flash_ptr[addr+2] << 16;
+    805e052e:	9281                	srli	a3,a3,0x20
+    val += app_flash_ptr[addr+3] << 24;
+    805e0530:	9101                	srli	a0,a0,0x20
+    val += app_flash_ptr[addr+1] << 8;
+    805e0532:	2789                	addiw	a5,a5,2
+    val += app_flash_ptr[addr+2] << 16;
+    805e0534:	96c2                	add	a3,a3,a6
+    val += app_flash_ptr[addr+3] << 24;
+    805e0536:	9542                	add	a0,a0,a6
+    uint32_t val = app_flash_ptr[addr];
+    805e0538:	1582                	slli	a1,a1,0x20
+    val += app_flash_ptr[addr+1] << 8;
+    805e053a:	1782                	slli	a5,a5,0x20
+    val += app_flash_ptr[addr+2] << 16;
+    805e053c:	0006c683          	lbu	a3,0(a3)
+    val += app_flash_ptr[addr+3] << 24;
+    805e0540:	00054503          	lbu	a0,0(a0)
+    uint32_t val = app_flash_ptr[addr];
+    805e0544:	9181                	srli	a1,a1,0x20
+    val += app_flash_ptr[addr+1] << 8;
+    805e0546:	9381                	srli	a5,a5,0x20
+    uint32_t val = app_flash_ptr[addr];
+    805e0548:	95c2                	add	a1,a1,a6
+    val += app_flash_ptr[addr+1] << 8;
+    805e054a:	97c2                	add	a5,a5,a6
+    805e054c:	0007c783          	lbu	a5,0(a5) # 2fc000 <_start-0x802e4000>
+    uint32_t val = app_flash_ptr[addr];
+    805e0550:	0005c803          	lbu	a6,0(a1)
+    val += app_flash_ptr[addr+2] << 16;
+    805e0554:	0106969b          	slliw	a3,a3,0x10
+    val += app_flash_ptr[addr+3] << 24;
+    805e0558:	0185159b          	slliw	a1,a0,0x18
+    805e055c:	9ead                	addw	a3,a3,a1
+    805e055e:	010686bb          	addw	a3,a3,a6
+    val += app_flash_ptr[addr+1] << 8;
+    805e0562:	0087979b          	slliw	a5,a5,0x8
+    val += app_flash_ptr[addr+3] << 24;
+    805e0566:	9ebd                	addw	a3,a3,a5
+    if ((cfg_magic & CFG_APP_FLAG_SIZE) && (cfg_size != sz)) return 0;
+    805e0568:	00867593          	andi	a1,a2,8
+    val += app_flash_ptr[addr+3] << 24;
+    805e056c:	0006879b          	sext.w	a5,a3
+    if ((cfg_magic & CFG_APP_FLAG_SIZE) && (cfg_size != sz)) return 0;
+    805e0570:	000da803          	lw	a6,0(s11)
+    805e0574:	c5a1                	beqz	a1,805e05bc <main+0x5a8>
+    805e0576:	07078f63          	beq	a5,a6,805e05f4 <main+0x5e0>
+                            LOG("App CHECK failed\n");
+    805e057a:	409c                	lw	a5,0(s1)
+    805e057c:	d3bd                	beqz	a5,805e04e2 <main+0x4ce>
+    805e057e:	601c                	ld	a5,0(s0)
+    805e0580:	00001517          	auipc	a0,0x1
+    805e0584:	33850513          	addi	a0,a0,824 # 805e18b8 <CSWTCH.3+0xc0>
+    805e0588:	9782                	jalr	a5
+    805e058a:	0c800513          	li	a0,200
+    805e058e:	00001097          	auipc	ra,0x1
+    805e0592:	b5e080e7          	jalr	-1186(ra) # 805e10ec <usleep>
+    805e0596:	000aa583          	lw	a1,0(s5)
+    805e059a:	b6b5                	j	805e0106 <main+0xf2>
+                    LOG("size Error!\n");
+    805e059c:	d3b9                	beqz	a5,805e04e2 <main+0x4ce>
+    805e059e:	601c                	ld	a5,0(s0)
+    805e05a0:	00001517          	auipc	a0,0x1
+    805e05a4:	36050513          	addi	a0,a0,864 # 805e1900 <CSWTCH.3+0x108>
+    805e05a8:	9782                	jalr	a5
+    805e05aa:	0c800513          	li	a0,200
+    805e05ae:	00001097          	auipc	ra,0x1
+    805e05b2:	b3e080e7          	jalr	-1218(ra) # 805e10ec <usleep>
+    805e05b6:	000aa583          	lw	a1,0(s5)
+    805e05ba:	b6b1                	j	805e0106 <main+0xf2>
+    else if (cfg_size != sz) {
+    805e05bc:	03078c63          	beq	a5,a6,805e05f4 <main+0x5e0>
+        LOG("app_size=%u, ", sz);
+    805e05c0:	408c                	lw	a1,0(s1)
+    805e05c2:	c585                	beqz	a1,805e05ea <main+0x5d6>
+    805e05c4:	6010                	ld	a2,0(s0)
+    805e05c6:	85be                	mv	a1,a5
+    805e05c8:	00001517          	auipc	a0,0x1
+    805e05cc:	2d050513          	addi	a0,a0,720 # 805e1898 <CSWTCH.3+0xa0>
+    805e05d0:	e436                	sd	a3,8(sp)
+    805e05d2:	e03e                	sd	a5,0(sp)
+    805e05d4:	9602                	jalr	a2
+    805e05d6:	0c800513          	li	a0,200
+    805e05da:	00001097          	auipc	ra,0x1
+    805e05de:	b12080e7          	jalr	-1262(ra) # 805e10ec <usleep>
+    805e05e2:	000d2603          	lw	a2,0(s10)
+    805e05e6:	66a2                	ld	a3,8(sp)
+    805e05e8:	6782                	ld	a5,0(sp)
+        cfg_size = sz;
+    805e05ea:	00002717          	auipc	a4,0x2
+    805e05ee:	94d72323          	sw	a3,-1722(a4) # 805e1f30 <cfg_size>
+    805e05f2:	883e                	mv	a6,a5
+    if (cfg_magic & CFG_APP_FLAG_SHA256) {
+    805e05f4:	00467793          	andi	a5,a2,4
+    805e05f8:	18079363          	bnez	a5,805e077e <main+0x76a>
+    if (cfg_magic & CFG_APP_FLAG_CRC32) {
+    805e05fc:	00267793          	andi	a5,a2,2
+    805e0600:	efad                	bnez	a5,805e067a <main+0x666>
+                        LOG("App ok, ");
+    805e0602:	409c                	lw	a5,0(s1)
+    805e0604:	e38d                	bnez	a5,805e0626 <main+0x612>
+                    if ((cfg_magic & CFG_APP_FLAG_ACTIVE) == 0) {
+    805e0606:	000d2683          	lw	a3,0(s10)
+                        available_apps[i] = 1;
+    805e060a:	00002617          	auipc	a2,0x2
+    805e060e:	95666603          	lwu	a2,-1706(a2) # 805e1f60 <i>
+    805e0612:	9652                	add	a2,a2,s4
+    805e0614:	4585                	li	a1,1
+    805e0616:	00b60023          	sb	a1,0(a2)
+                    if ((cfg_magic & CFG_APP_FLAG_ACTIVE) == 0) {
+    805e061a:	8a85                	andi	a3,a3,1
+    805e061c:	d6069be3          	bnez	a3,805e0392 <main+0x37e>
+    805e0620:	000aa583          	lw	a1,0(s5)
+    805e0624:	b4cd                	j	805e0106 <main+0xf2>
+                        LOG("App ok, ");
+    805e0626:	601c                	ld	a5,0(s0)
+    805e0628:	00001517          	auipc	a0,0x1
+    805e062c:	2a850513          	addi	a0,a0,680 # 805e18d0 <CSWTCH.3+0xd8>
+    805e0630:	9782                	jalr	a5
+    805e0632:	0c800513          	li	a0,200
+    805e0636:	00001097          	auipc	ra,0x1
+    805e063a:	ab6080e7          	jalr	-1354(ra) # 805e10ec <usleep>
+                        available_apps[i] = 1;
+    805e063e:	00002697          	auipc	a3,0x2
+    805e0642:	9226e683          	lwu	a3,-1758(a3) # 805e1f60 <i>
+    805e0646:	96d2                	add	a3,a3,s4
+    805e0648:	4605                	li	a2,1
+    805e064a:	00c68023          	sb	a2,0(a3)
+                    if ((cfg_magic & CFG_APP_FLAG_ACTIVE) == 0) {
+    805e064e:	000d2683          	lw	a3,0(s10)
+    805e0652:	409c                	lw	a5,0(s1)
+    805e0654:	8a85                	andi	a3,a3,1
+    805e0656:	d2069ee3          	bnez	a3,805e0392 <main+0x37e>
+                        LOG("NOT ");
+    805e065a:	e80784e3          	beqz	a5,805e04e2 <main+0x4ce>
+    805e065e:	601c                	ld	a5,0(s0)
+    805e0660:	00001517          	auipc	a0,0x1
+    805e0664:	29050513          	addi	a0,a0,656 # 805e18f0 <CSWTCH.3+0xf8>
+    805e0668:	9782                	jalr	a5
+    805e066a:	0c800513          	li	a0,200
+    805e066e:	00001097          	auipc	ra,0x1
+    805e0672:	a7e080e7          	jalr	-1410(ra) # 805e10ec <usleep>
+    805e0676:	409c                	lw	a5,0(s1)
+    805e0678:	b3a9                	j	805e03c2 <main+0x3ae>
+    for (uint32_t n = 5; n < (cfg_size+5); n++) {
+    805e067a:	0058079b          	addiw	a5,a6,5
+    805e067e:	4695                	li	a3,5
+    805e0680:	5cf6f463          	bleu	a5,a3,805e0c48 <main+0xc34>
+    805e0684:	000c2603          	lw	a2,0(s8)
+    uint32_t crc = 0xFFFFFFFF;
+    805e0688:	57fd                	li	a5,-1
+        byte = app_flash_ptr[cfg_address + n];
+    805e068a:	54000537          	lui	a0,0x54000
+    805e068e:	0056059b          	addiw	a1,a2,5
+    805e0692:	0105863b          	addw	a2,a1,a6
+    805e0696:	02059693          	slli	a3,a1,0x20
+    805e069a:	9281                	srli	a3,a3,0x20
+    805e069c:	96aa                	add	a3,a3,a0
+    805e069e:	0006c683          	lbu	a3,0(a3)
+    805e06a2:	2585                	addiw	a1,a1,1
+        crc = crc ^ byte;
+    805e06a4:	8fb5                	xor	a5,a5,a3
+            mask = -(crc & 1);
+    805e06a6:	0017f693          	andi	a3,a5,1
+    805e06aa:	40d006bb          	negw	a3,a3
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e06ae:	0166f6b3          	and	a3,a3,s6
+    805e06b2:	0017d79b          	srliw	a5,a5,0x1
+    805e06b6:	8fb5                	xor	a5,a5,a3
+    805e06b8:	0007869b          	sext.w	a3,a5
+            mask = -(crc & 1);
+    805e06bc:	0016f793          	andi	a5,a3,1
+    805e06c0:	40f007bb          	negw	a5,a5
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e06c4:	0016d69b          	srliw	a3,a3,0x1
+    805e06c8:	0167f7b3          	and	a5,a5,s6
+    805e06cc:	8fb5                	xor	a5,a5,a3
+    805e06ce:	2781                	sext.w	a5,a5
+            mask = -(crc & 1);
+    805e06d0:	0017f693          	andi	a3,a5,1
+    805e06d4:	40d006bb          	negw	a3,a3
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e06d8:	0017d79b          	srliw	a5,a5,0x1
+    805e06dc:	0166f6b3          	and	a3,a3,s6
+    805e06e0:	8ebd                	xor	a3,a3,a5
+    805e06e2:	2681                	sext.w	a3,a3
+            mask = -(crc & 1);
+    805e06e4:	0016f793          	andi	a5,a3,1
+    805e06e8:	40f007bb          	negw	a5,a5
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e06ec:	0016d69b          	srliw	a3,a3,0x1
+    805e06f0:	0167f7b3          	and	a5,a5,s6
+    805e06f4:	8fb5                	xor	a5,a5,a3
+    805e06f6:	2781                	sext.w	a5,a5
+            mask = -(crc & 1);
+    805e06f8:	0017f693          	andi	a3,a5,1
+    805e06fc:	40d006bb          	negw	a3,a3
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e0700:	0017d79b          	srliw	a5,a5,0x1
+    805e0704:	0166f6b3          	and	a3,a3,s6
+    805e0708:	8ebd                	xor	a3,a3,a5
+    805e070a:	2681                	sext.w	a3,a3
+            mask = -(crc & 1);
+    805e070c:	0016f793          	andi	a5,a3,1
+    805e0710:	40f007bb          	negw	a5,a5
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e0714:	0016d69b          	srliw	a3,a3,0x1
+    805e0718:	0167f7b3          	and	a5,a5,s6
+    805e071c:	8fb5                	xor	a5,a5,a3
+    805e071e:	2781                	sext.w	a5,a5
+            mask = -(crc & 1);
+    805e0720:	0017f693          	andi	a3,a5,1
+    805e0724:	40d006bb          	negw	a3,a3
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e0728:	0017d79b          	srliw	a5,a5,0x1
+    805e072c:	0166f6b3          	and	a3,a3,s6
+    805e0730:	8ebd                	xor	a3,a3,a5
+    805e0732:	2681                	sext.w	a3,a3
+            mask = -(crc & 1);
+    805e0734:	0016f793          	andi	a5,a3,1
+    805e0738:	40f007bb          	negw	a5,a5
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    805e073c:	0016d69b          	srliw	a3,a3,0x1
+    805e0740:	0167f7b3          	and	a5,a5,s6
+    805e0744:	8fb5                	xor	a5,a5,a3
+    805e0746:	2781                	sext.w	a5,a5
+    for (uint32_t n = 5; n < (cfg_size+5); n++) {
+    805e0748:	f4c597e3          	bne	a1,a2,805e0696 <main+0x682>
+    if (crc32 != cfg_crc) {
+    805e074c:	00001717          	auipc	a4,0x1
+    805e0750:	7c870713          	addi	a4,a4,1992 # 805e1f14 <cfg_crc>
+    805e0754:	4314                	lw	a3,0(a4)
+    805e0756:	fff7c793          	not	a5,a5
+    805e075a:	eaf684e3          	beq	a3,a5,805e0602 <main+0x5ee>
+        LOG("CRC32 error, ");
+    805e075e:	409c                	lw	a5,0(s1)
+    805e0760:	d80781e3          	beqz	a5,805e04e2 <main+0x4ce>
+    805e0764:	601c                	ld	a5,0(s0)
+    805e0766:	00001517          	auipc	a0,0x1
+    805e076a:	14250513          	addi	a0,a0,322 # 805e18a8 <CSWTCH.3+0xb0>
+    805e076e:	9782                	jalr	a5
+    805e0770:	0c800513          	li	a0,200
+    805e0774:	00001097          	auipc	ra,0x1
+    805e0778:	978080e7          	jalr	-1672(ra) # 805e10ec <usleep>
+    805e077c:	bbfd                	j	805e057a <main+0x566>
+        return app_sha256();
+    805e077e:	00000097          	auipc	ra,0x0
+    805e0782:	7dc080e7          	jalr	2012(ra) # 805e0f5a <app_sha256>
+    805e0786:	2501                	sext.w	a0,a0
+                        if (app_check() == 0) {
+    805e0788:	e6051de3          	bnez	a0,805e0602 <main+0x5ee>
+    805e078c:	b3fd                	j	805e057a <main+0x566>
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e078e:	478d                	li	a5,3
+    805e0790:	00001717          	auipc	a4,0x1
+    805e0794:	7cf72823          	sw	a5,2000(a4) # 805e1f60 <i>
+        }
+        else {
+            LOG("\n* No app found, loading default\n");
+        }
+    }
+    else if (boot_pin == 0) {
+    805e0798:	00001797          	auipc	a5,0x1
+    805e079c:	37078793          	addi	a5,a5,880 # 805e1b08 <boot_pin>
+    805e07a0:	439c                	lw	a5,0(a5)
+    805e07a2:	24078363          	beqz	a5,805e09e8 <main+0x9d4>
+            LOG("%c\n\n", (char)char_in);
+        }
+    }
+
+    // If default application is selected for load, get its size and check SHA hash
+    if (app_flash_start == DEFAULT_APP_ADDR) {
+    805e07a6:	000ba703          	lw	a4,0(s7)
+    805e07aa:	67c1                	lui	a5,0x10
+    805e07ac:	18f70a63          	beq	a4,a5,805e0940 <main+0x92c>
+            }
+        }
+    }
+
+    // === Copy the application code from flash to SRAM ===
+    LOG("* Loading app from flash at 0x%08X (%u B)\n", app_flash_start, app_size);
+    805e07b0:	409c                	lw	a5,0(s1)
+    805e07b2:	00001917          	auipc	s2,0x1
+    805e07b6:	34690913          	addi	s2,s2,838 # 805e1af8 <app_size>
+    805e07ba:	c38d                	beqz	a5,805e07dc <main+0x7c8>
+    805e07bc:	601c                	ld	a5,0(s0)
+    805e07be:	00092603          	lw	a2,0(s2)
+    805e07c2:	000ba583          	lw	a1,0(s7)
+    805e07c6:	00001517          	auipc	a0,0x1
+    805e07ca:	24a50513          	addi	a0,a0,586 # 805e1a10 <CSWTCH.3+0x218>
+    805e07ce:	9782                	jalr	a5
+    805e07d0:	0c800513          	li	a0,200
+    805e07d4:	00001097          	auipc	ra,0x1
+    805e07d8:	918080e7          	jalr	-1768(ra) # 805e10ec <usleep>
+
+    for (i=0; i < app_size; i++) {
+    805e07dc:	00092603          	lw	a2,0(s2)
+    805e07e0:	00001797          	auipc	a5,0x1
+    805e07e4:	7807a023          	sw	zero,1920(a5) # 805e1f60 <i>
+    805e07e8:	c231                	beqz	a2,805e082c <main+0x818>
+    805e07ea:	4785                	li	a5,1
+    805e07ec:	fff6071b          	addiw	a4,a2,-1
+    805e07f0:	07fe                	slli	a5,a5,0x1f
+    805e07f2:	1702                	slli	a4,a4,0x20
+    805e07f4:	00178693          	addi	a3,a5,1
+        app_sram_ptr[i] = app_flash_ptr[app_flash_start+i+5];
+    805e07f8:	000ba583          	lw	a1,0(s7)
+    805e07fc:	9301                	srli	a4,a4,0x20
+    805e07fe:	9736                	add	a4,a4,a3
+    805e0800:	800006b7          	lui	a3,0x80000
+    805e0804:	2695                	addiw	a3,a3,5
+    805e0806:	9db5                	addw	a1,a1,a3
+    805e0808:	54000537          	lui	a0,0x54000
+    805e080c:	00f586bb          	addw	a3,a1,a5
+    805e0810:	1682                	slli	a3,a3,0x20
+    805e0812:	9281                	srli	a3,a3,0x20
+    805e0814:	96aa                	add	a3,a3,a0
+    805e0816:	0006c683          	lbu	a3,0(a3) # ffffffff80000000 <context+0xfffffffeffa1e048>
+    805e081a:	0785                	addi	a5,a5,1
+    805e081c:	fed78fa3          	sb	a3,-1(a5)
+    for (i=0; i < app_size; i++) {
+    805e0820:	fee796e3          	bne	a5,a4,805e080c <main+0x7f8>
+    805e0824:	00001797          	auipc	a5,0x1
+    805e0828:	72c7ae23          	sw	a2,1852(a5) # 805e1f60 <i>
+    }
+
+    // === Start the application ===
+    LOG("* Starting at 0x%08X ...\n\n", app_start);
+    805e082c:	409c                	lw	a5,0(s1)
+    805e082e:	cf99                	beqz	a5,805e084c <main+0x838>
+    805e0830:	601c                	ld	a5,0(s0)
+    805e0832:	4585                	li	a1,1
+    805e0834:	05fe                	slli	a1,a1,0x1f
+    805e0836:	00001517          	auipc	a0,0x1
+    805e083a:	20a50513          	addi	a0,a0,522 # 805e1a40 <CSWTCH.3+0x248>
+    805e083e:	9782                	jalr	a5
+    805e0840:	0c800513          	li	a0,200
+    805e0844:	00001097          	auipc	ra,0x1
+    805e0848:	8a8080e7          	jalr	-1880(ra) # 805e10ec <usleep>
+    usleep(1000);
+    805e084c:	3e800513          	li	a0,1000
+    805e0850:	00001097          	auipc	ra,0x1
+    805e0854:	89c080e7          	jalr	-1892(ra) # 805e10ec <usleep>
+
+    // Disable XIP mode
+    sysctl->peri.spi3_xip_en = 0;
+    805e0858:	504406b7          	lui	a3,0x50440
+    805e085c:	4ebc                	lw	a5,88(a3)
+    805e085e:	7761                	lui	a4,0xffff8
+    805e0860:	177d                	addi	a4,a4,-1
+    805e0862:	8ff9                	and	a5,a5,a4
+    805e0864:	cebc                	sw	a5,88(a3)
+    /*
+     * each core has separate instruction cache
+     * we must clear it before continuing
+    */
+
+    core1_sync = 1;
+    805e0866:	4785                	li	a5,1
+    805e0868:	00001717          	auipc	a4,0x1
+    805e086c:	6cf72a23          	sw	a5,1748(a4) # 805e1f3c <core1_sync>
+    asm("fence");   // D-Cache; this may not be necessary, but it looks it doesn't hurt if it is executed
+    805e0870:	0ff0000f          	fence
+    asm("fence.i"); // I-Cache
+    805e0874:	0000100f          	fence.i
+    asm ("jr %0" : : "r"(app_start));
+    805e0878:	4785                	li	a5,1
+    805e087a:	07fe                	slli	a5,a5,0x1f
+    805e087c:	8782                	jr	a5
+
+    // This should never be reached!
+    LOG("\nERROR, SYSTEM HALTED\n");
+    805e087e:	409c                	lw	a5,0(s1)
+    805e0880:	cf89                	beqz	a5,805e089a <main+0x886>
+    805e0882:	601c                	ld	a5,0(s0)
+    805e0884:	00001517          	auipc	a0,0x1
+    805e0888:	1dc50513          	addi	a0,a0,476 # 805e1a60 <CSWTCH.3+0x268>
+    805e088c:	9782                	jalr	a5
+    805e088e:	0c800513          	li	a0,200
+    805e0892:	00001097          	auipc	ra,0x1
+    805e0896:	85a080e7          	jalr	-1958(ra) # 805e10ec <usleep>
+    while (1) {
+        asm ("nop");
+    805e089a:	0001                	nop
+    805e089c:	0001                	nop
+    805e089e:	bff5                	j	805e089a <main+0x886>
+        fpioa_set_function(BOOT_PIN, FUNC_GPIOHS2);
+    805e08a0:	45e9                	li	a1,26
+    805e08a2:	4549                	li	a0,18
+    805e08a4:	00000097          	auipc	ra,0x0
+    805e08a8:	4c2080e7          	jalr	1218(ra) # 805e0d66 <fpioa_set_function>
+        gpiohs_set_drive_mode(GPIO_KEY, GPIO_DM_INPUT_PULL_UP);
+    805e08ac:	4589                	li	a1,2
+    805e08ae:	4509                	li	a0,2
+    805e08b0:	00000097          	auipc	ra,0x0
+    805e08b4:	5bc080e7          	jalr	1468(ra) # 805e0e6c <gpiohs_set_drive_mode>
+        usleep(1000);
+    805e08b8:	3e800513          	li	a0,1000
+    805e08bc:	00001097          	auipc	ra,0x1
+    805e08c0:	830080e7          	jalr	-2000(ra) # 805e10ec <usleep>
+        boot_pin = gpiohs_get_pin(GPIO_KEY);
+    805e08c4:	4509                	li	a0,2
+    805e08c6:	00000097          	auipc	ra,0x0
+    805e08ca:	63a080e7          	jalr	1594(ra) # 805e0f00 <gpiohs_get_pin>
+    LOG("\nK210 bootloader by LoBo v.1.4.1\n\n");
+    805e08ce:	409c                	lw	a5,0(s1)
+        boot_pin = gpiohs_get_pin(GPIO_KEY);
+    805e08d0:	00001717          	auipc	a4,0x1
+    805e08d4:	22a72c23          	sw	a0,568(a4) # 805e1b08 <boot_pin>
+    LOG("\nK210 bootloader by LoBo v.1.4.1\n\n");
+    805e08d8:	00001417          	auipc	s0,0x1
+    805e08dc:	6b043403          	ld	s0,1712(s0) # 805e1f88 <__TMC_END__+0x8>
+    805e08e0:	fa078d63          	beqz	a5,805e009a <main+0x86>
+    805e08e4:	601c                	ld	a5,0(s0)
+    805e08e6:	00001517          	auipc	a0,0x1
+    805e08ea:	f3250513          	addi	a0,a0,-206 # 805e1818 <CSWTCH.3+0x20>
+    805e08ee:	9782                	jalr	a5
+    805e08f0:	0c800513          	li	a0,200
+    805e08f4:	00000097          	auipc	ra,0x0
+    805e08f8:	7f8080e7          	jalr	2040(ra) # 805e10ec <usleep>
+    LOG("* Find applications in MAIN parameters\n");
+    805e08fc:	409c                	lw	a5,0(s1)
+    805e08fe:	f8078e63          	beqz	a5,805e009a <main+0x86>
+    805e0902:	601c                	ld	a5,0(s0)
+    805e0904:	00001517          	auipc	a0,0x1
+    805e0908:	f3c50513          	addi	a0,a0,-196 # 805e1840 <CSWTCH.3+0x48>
+    805e090c:	9782                	jalr	a5
+    805e090e:	0c800513          	li	a0,200
+    805e0912:	00000097          	auipc	ra,0x0
+    805e0916:	7da080e7          	jalr	2010(ra) # 805e10ec <usleep>
+    805e091a:	f80ff06f          	j	805e009a <main+0x86>
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e091e:	4789                	li	a5,2
+    805e0920:	bd85                	j	805e0790 <main+0x77c>
+                            LOG("ACTIVE\n");
+    805e0922:	ac0788e3          	beqz	a5,805e03f2 <main+0x3de>
+    805e0926:	601c                	ld	a5,0(s0)
+    805e0928:	00001517          	auipc	a0,0x1
+    805e092c:	fd050513          	addi	a0,a0,-48 # 805e18f8 <CSWTCH.3+0x100>
+    805e0930:	9782                	jalr	a5
+    805e0932:	0c800513          	li	a0,200
+    805e0936:	00000097          	auipc	ra,0x0
+    805e093a:	7b6080e7          	jalr	1974(ra) # 805e10ec <usleep>
+    805e093e:	bc55                	j	805e03f2 <main+0x3de>
+        app_size = flash2uint32(app_flash_start+1); // get app size
+    805e0940:	6941                	lui	s2,0x10
+        key = 1;
+    805e0942:	4785                	li	a5,1
+        app_size = flash2uint32(app_flash_start+1); // get app size
+    805e0944:	00190513          	addi	a0,s2,1 # 10001 <_start-0x805cffff>
+        key = 1;
+    805e0948:	00001717          	auipc	a4,0x1
+    805e094c:	60f70e23          	sb	a5,1564(a4) # 805e1f64 <key>
+        app_size = flash2uint32(app_flash_start+1); // get app size
+    805e0950:	00000097          	auipc	ra,0x0
+    805e0954:	5be080e7          	jalr	1470(ra) # 805e0f0e <flash2uint32>
+    805e0958:	2501                	sext.w	a0,a0
+    805e095a:	00001797          	auipc	a5,0x1
+    805e095e:	18a7af23          	sw	a0,414(a5) # 805e1af8 <app_size>
+        if ((app_size >= MIN_APP_FLASH_SIZE) && (app_size <= MAX_APP_FLASH_SIZE)) {
+    805e0962:	77f1                	lui	a5,0xffffc
+    805e0964:	9fa9                	addw	a5,a5,a0
+    805e0966:	002fc737          	lui	a4,0x2fc
+    805e096a:	04f77463          	bleu	a5,a4,805e09b2 <main+0x99e>
+            LOG("\n* Default application check failed!\n");
+    805e096e:	601c                	ld	a5,0(s0)
+            print_enabled = 1;
+    805e0970:	4705                	li	a4,1
+            LOG("\n* Default application check failed!\n");
+    805e0972:	00001517          	auipc	a0,0x1
+    805e0976:	05e50513          	addi	a0,a0,94 # 805e19d0 <CSWTCH.3+0x1d8>
+            print_enabled = 1;
+    805e097a:	00001697          	auipc	a3,0x1
+    805e097e:	5ee6a723          	sw	a4,1518(a3) # 805e1f68 <print_enabled>
+            LOG("\n* Default application check failed!\n");
+    805e0982:	9782                	jalr	a5
+    805e0984:	0c800513          	li	a0,200
+    805e0988:	00000097          	auipc	ra,0x0
+    805e098c:	764080e7          	jalr	1892(ra) # 805e10ec <usleep>
+            LOG("* SYSTEM HALTED\n");
+    805e0990:	409c                	lw	a5,0(s1)
+    805e0992:	cf89                	beqz	a5,805e09ac <main+0x998>
+    805e0994:	601c                	ld	a5,0(s0)
+    805e0996:	00001517          	auipc	a0,0x1
+    805e099a:	06250513          	addi	a0,a0,98 # 805e19f8 <CSWTCH.3+0x200>
+    805e099e:	9782                	jalr	a5
+    805e09a0:	0c800513          	li	a0,200
+    805e09a4:	00000097          	auipc	ra,0x0
+    805e09a8:	748080e7          	jalr	1864(ra) # 805e10ec <usleep>
+                asm ("nop");
+    805e09ac:	0001                	nop
+    805e09ae:	0001                	nop
+    805e09b0:	bff5                	j	805e09ac <main+0x998>
+            cfg_size = app_size;
+    805e09b2:	00001797          	auipc	a5,0x1
+    805e09b6:	56a7af23          	sw	a0,1406(a5) # 805e1f30 <cfg_size>
+            cfg_address = app_flash_start;
+    805e09ba:	00001797          	auipc	a5,0x1
+    805e09be:	5527ab23          	sw	s2,1366(a5) # 805e1f10 <cfg_address>
+            if (app_sha256()) key = 0;
+    805e09c2:	00000097          	auipc	ra,0x0
+    805e09c6:	598080e7          	jalr	1432(ra) # 805e0f5a <app_sha256>
+    805e09ca:	2501                	sext.w	a0,a0
+    805e09cc:	10050e63          	beqz	a0,805e0ae8 <main+0xad4>
+    805e09d0:	00001797          	auipc	a5,0x1
+    805e09d4:	58078a23          	sb	zero,1428(a5) # 805e1f64 <key>
+        if (key) {
+    805e09d8:	bbe1                	j	805e07b0 <main+0x79c>
+    else if (boot_pin == 0) {
+    805e09da:	00001797          	auipc	a5,0x1
+    805e09de:	12e78793          	addi	a5,a5,302 # 805e1b08 <boot_pin>
+    805e09e2:	439c                	lw	a5,0(a5)
+    805e09e4:	dc0796e3          	bnez	a5,805e07b0 <main+0x79c>
+        boot_pin = gpiohs_get_pin(GPIO_KEY);
+    805e09e8:	4509                	li	a0,2
+    805e09ea:	00000097          	auipc	ra,0x0
+    805e09ee:	516080e7          	jalr	1302(ra) # 805e0f00 <gpiohs_get_pin>
+    805e09f2:	0005091b          	sext.w	s2,a0
+    805e09f6:	00001797          	auipc	a5,0x1
+    805e09fa:	1127a923          	sw	s2,274(a5) # 805e1b08 <boot_pin>
+        if (boot_pin == 0) {
+    805e09fe:	da0914e3          	bnez	s2,805e07a6 <main+0x792>
+            LOG("\nSelect the application number to load [");
+    805e0a02:	409c                	lw	a5,0(s1)
+    805e0a04:	24079463          	bnez	a5,805e0c4c <main+0xc38>
+            for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0a08:	00001797          	auipc	a5,0x1
+    805e0a0c:	5407ac23          	sw	zero,1368(a5) # 805e1f60 <i>
+                    LOG(" %u,", i);
+    805e0a10:	00001c17          	auipc	s8,0x1
+    805e0a14:	f98c0c13          	addi	s8,s8,-104 # 805e19a8 <CSWTCH.3+0x1b0>
+            for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0a18:	4b1d                	li	s6,7
+                if (available_apps[i]) {
+    805e0a1a:	02091793          	slli	a5,s2,0x20
+    805e0a1e:	9381                	srli	a5,a5,0x20
+    805e0a20:	97d2                	add	a5,a5,s4
+    805e0a22:	0007c783          	lbu	a5,0(a5)
+    805e0a26:	cf89                	beqz	a5,805e0a40 <main+0xa2c>
+                    LOG(" %u,", i);
+    805e0a28:	409c                	lw	a5,0(s1)
+    805e0a2a:	85ca                	mv	a1,s2
+    805e0a2c:	8562                	mv	a0,s8
+    805e0a2e:	cb89                	beqz	a5,805e0a40 <main+0xa2c>
+    805e0a30:	601c                	ld	a5,0(s0)
+    805e0a32:	9782                	jalr	a5
+    805e0a34:	0c800513          	li	a0,200
+    805e0a38:	00000097          	auipc	ra,0x0
+    805e0a3c:	6b4080e7          	jalr	1716(ra) # 805e10ec <usleep>
+            for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0a40:	000aa783          	lw	a5,0(s5)
+    805e0a44:	0017891b          	addiw	s2,a5,1
+    805e0a48:	00001717          	auipc	a4,0x1
+    805e0a4c:	51272c23          	sw	s2,1304(a4) # 805e1f60 <i>
+    805e0a50:	fd2b75e3          	bleu	s2,s6,805e0a1a <main+0xa06>
+            LOG(" d=default ] ? ");
+    805e0a54:	409c                	lw	a5,0(s1)
+    805e0a56:	1c079c63          	bnez	a5,805e0c2e <main+0xc1a>
+    805e0a5a:	00001c97          	auipc	s9,0x1
+    805e0a5e:	53ecbc83          	ld	s9,1342(s9) # 805e1f98 <__TMC_END__+0x18>
+                if ((char_in == 'd') || (char_in == 'D')) {
+    805e0a62:	04400c13          	li	s8,68
+                    if ((char_in >= 0) && (char_in < BOOT_CONFIG_ITEMS)) {
+    805e0a66:	4b1d                	li	s6,7
+                    LOG("%c? ", char_in);
+    805e0a68:	00001a97          	auipc	s5,0x1
+    805e0a6c:	f58a8a93          	addi	s5,s5,-168 # 805e19c0 <CSWTCH.3+0x1c8>
+    805e0a70:	a005                	j	805e0a90 <main+0xa7c>
+                    char_in -= 0x30;
+    805e0a72:	00001797          	auipc	a5,0x1
+    805e0a76:	4cd7a123          	sw	a3,1218(a5) # 805e1f34 <char_in>
+                    if ((char_in >= 0) && (char_in < BOOT_CONFIG_ITEMS)) {
+    805e0a7a:	00eb6563          	bltu	s6,a4,805e0a84 <main+0xa70>
+                        if (available_apps[char_in]) {
+    805e0a7e:	00064783          	lbu	a5,0(a2)
+    805e0a82:	efc5                	bnez	a5,805e0b3a <main+0xb26>
+                    LOG("%c? ", char_in);
+    805e0a84:	409c                	lw	a5,0(s1)
+                    char_in += 0x30;
+    805e0a86:	00001717          	auipc	a4,0x1
+    805e0a8a:	4b272723          	sw	s2,1198(a4) # 805e1f34 <char_in>
+                    LOG("%c? ", char_in);
+    805e0a8e:	ebd9                	bnez	a5,805e0b24 <main+0xb10>
+                char_in = rom_getchar();
+    805e0a90:	000cb783          	ld	a5,0(s9)
+    805e0a94:	9782                	jalr	a5
+                if ((char_in == 'd') || (char_in == 'D')) {
+    805e0a96:	fdf57793          	andi	a5,a0,-33
+                    char_in -= 0x30;
+    805e0a9a:	fd05069b          	addiw	a3,a0,-48
+                char_in = rom_getchar();
+    805e0a9e:	00001717          	auipc	a4,0x1
+    805e0aa2:	48a72b23          	sw	a0,1174(a4) # 805e1f34 <char_in>
+                    char_in -= 0x30;
+    805e0aa6:	0006871b          	sext.w	a4,a3
+                if ((char_in == 'd') || (char_in == 'D')) {
+    805e0aaa:	2781                	sext.w	a5,a5
+                char_in = rom_getchar();
+    805e0aac:	892a                	mv	s2,a0
+                        if (available_apps[char_in]) {
+    805e0aae:	00ea0633          	add	a2,s4,a4
+                if ((char_in == 'd') || (char_in == 'D')) {
+    805e0ab2:	fd8790e3          	bne	a5,s8,805e0a72 <main+0xa5e>
+            LOG("%c\n\n", (char)char_in);
+    805e0ab6:	409c                	lw	a5,0(s1)
+                    app_flash_start = DEFAULT_APP_ADDR;
+    805e0ab8:	6741                	lui	a4,0x10
+    805e0aba:	00001697          	auipc	a3,0x1
+    805e0abe:	00e6ab23          	sw	a4,22(a3) # 805e1ad0 <app_flash_start>
+            LOG("%c\n\n", (char)char_in);
+    805e0ac2:	e6078fe3          	beqz	a5,805e0940 <main+0x92c>
+    805e0ac6:	601c                	ld	a5,0(s0)
+    805e0ac8:	00001597          	auipc	a1,0x1
+    805e0acc:	46c5c583          	lbu	a1,1132(a1) # 805e1f34 <char_in>
+    805e0ad0:	00001517          	auipc	a0,0x1
+    805e0ad4:	ef850513          	addi	a0,a0,-264 # 805e19c8 <CSWTCH.3+0x1d0>
+    805e0ad8:	9782                	jalr	a5
+    805e0ada:	0c800513          	li	a0,200
+    805e0ade:	00000097          	auipc	ra,0x0
+    805e0ae2:	60e080e7          	jalr	1550(ra) # 805e10ec <usleep>
+    805e0ae6:	b1c1                	j	805e07a6 <main+0x792>
+        if (key) {
+    805e0ae8:	00001797          	auipc	a5,0x1
+    805e0aec:	47c7c783          	lbu	a5,1148(a5) # 805e1f64 <key>
+    805e0af0:	cc0780e3          	beqz	a5,805e07b0 <main+0x79c>
+    805e0af4:	bdad                	j	805e096e <main+0x95a>
+    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
+    805e0af6:	479d                	li	a5,7
+    805e0af8:	b961                	j	805e0790 <main+0x77c>
+    805e0afa:	4799                	li	a5,6
+    805e0afc:	b951                	j	805e0790 <main+0x77c>
+    805e0afe:	4795                	li	a5,5
+    805e0b00:	b941                	j	805e0790 <main+0x77c>
+    805e0b02:	4791                	li	a5,4
+    805e0b04:	b171                	j	805e0790 <main+0x77c>
+            LOG("\n* No app found, loading default\n");
+    805e0b06:	e2078de3          	beqz	a5,805e0940 <main+0x92c>
+    805e0b0a:	601c                	ld	a5,0(s0)
+    805e0b0c:	00001517          	auipc	a0,0x1
+    805e0b10:	e4450513          	addi	a0,a0,-444 # 805e1950 <CSWTCH.3+0x158>
+    805e0b14:	9782                	jalr	a5
+    805e0b16:	0c800513          	li	a0,200
+    805e0b1a:	00000097          	auipc	ra,0x0
+    805e0b1e:	5d2080e7          	jalr	1490(ra) # 805e10ec <usleep>
+    805e0b22:	b151                	j	805e07a6 <main+0x792>
+                    LOG("%c? ", char_in);
+    805e0b24:	601c                	ld	a5,0(s0)
+    805e0b26:	85ca                	mv	a1,s2
+    805e0b28:	8556                	mv	a0,s5
+    805e0b2a:	9782                	jalr	a5
+    805e0b2c:	0c800513          	li	a0,200
+    805e0b30:	00000097          	auipc	ra,0x0
+    805e0b34:	5bc080e7          	jalr	1468(ra) # 805e10ec <usleep>
+    805e0b38:	bfa1                	j	805e0a90 <main+0xa7c>
+    offset = (i*8) + (cfg_offset / 4); // 32bit offset in current config sector
+    805e0b3a:	0009a583          	lw	a1,0(s3)
+    805e0b3e:	0037179b          	slliw	a5,a4,0x3
+    offset = (i*32) + cfg_offset + 0x10; // 8bit offset in current config sector
+    805e0b42:	0057171b          	slliw	a4,a4,0x5
+    offset = (i*8) + (cfg_offset / 4); // 32bit offset in current config sector
+    805e0b46:	0025d69b          	srliw	a3,a1,0x2
+    805e0b4a:	9fb5                	addw	a5,a5,a3
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b4c:	0017851b          	addiw	a0,a5,1
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b50:	0027861b          	addiw	a2,a5,2
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b54:	0037869b          	addiw	a3,a5,3
+    offset = (i*32) + cfg_offset + 0x10; // 8bit offset in current config sector
+    805e0b58:	25c1                	addiw	a1,a1,16
+    805e0b5a:	9db9                	addw	a1,a1,a4
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b5c:	1782                	slli	a5,a5,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b5e:	1502                	slli	a0,a0,0x20
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b60:	1602                	slli	a2,a2,0x20
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b62:	1682                	slli	a3,a3,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b64:	9381                	srli	a5,a5,0x20
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b66:	9101                	srli	a0,a0,0x20
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b68:	9201                	srli	a2,a2,0x20
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b6a:	9281                	srli	a3,a3,0x20
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0b6c:	02059813          	slli	a6,a1,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b70:	54004737          	lui	a4,0x54004
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0b74:	02085813          	srli	a6,a6,0x20
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b78:	078a                	slli	a5,a5,0x2
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b7a:	050a                	slli	a0,a0,0x2
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b7c:	060a                	slli	a2,a2,0x2
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b7e:	068a                	slli	a3,a3,0x2
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b80:	97ba                	add	a5,a5,a4
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b82:	953a                	add	a0,a0,a4
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b84:	963a                	add	a2,a2,a4
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b86:	96ba                	add	a3,a3,a4
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0b88:	9742                	add	a4,a4,a6
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b8a:	4210                	lw	a2,0(a2)
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0b8c:	0007a803          	lw	a6,0(a5)
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0b90:	4294                	lw	a3,0(a3)
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0b92:	00074783          	lbu	a5,0(a4) # 54004000 <_start-0x2c5dc000>
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0b96:	00052983          	lw	s3,0(a0)
+    cfg_size = cfg_flash_ptr[offset + 2];
+    805e0b9a:	00001717          	auipc	a4,0x1
+    805e0b9e:	38c72b23          	sw	a2,918(a4) # 805e1f30 <cfg_size>
+    cfg_crc = cfg_flash_ptr[offset + 3];
+    805e0ba2:	00001717          	auipc	a4,0x1
+    805e0ba6:	36d72923          	sw	a3,882(a4) # 805e1f14 <cfg_crc>
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0baa:	00001717          	auipc	a4,0x1
+    805e0bae:	3af70d23          	sb	a5,954(a4) # 805e1f64 <key>
+    cfg_magic = cfg_flash_ptr[offset + 0];
+    805e0bb2:	00001717          	auipc	a4,0x1
+    805e0bb6:	37072b23          	sw	a6,886(a4) # 805e1f28 <cfg_magic>
+    cfg_address = cfg_flash_ptr[offset + 1];
+    805e0bba:	00001717          	auipc	a4,0x1
+    805e0bbe:	35372b23          	sw	s3,854(a4) # 805e1f10 <cfg_address>
+    key = cfg_flash_bptr[offset];        // dummy read needed to switch to 8bit XiP read
+    805e0bc2:	4781                	li	a5,0
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e0bc4:	54004637          	lui	a2,0x54004
+    for (int n=0; n<16; n++) {
+    805e0bc8:	46c1                	li	a3,16
+        cfg_info[n] = cfg_flash_bptr[offset + n];
+    805e0bca:	00b7873b          	addw	a4,a5,a1
+    805e0bce:	1702                	slli	a4,a4,0x20
+    805e0bd0:	9301                	srli	a4,a4,0x20
+    805e0bd2:	9732                	add	a4,a4,a2
+    805e0bd4:	00074503          	lbu	a0,0(a4)
+    805e0bd8:	00001717          	auipc	a4,0x1
+    805e0bdc:	34070713          	addi	a4,a4,832 # 805e1f18 <cfg_info>
+    805e0be0:	973e                	add	a4,a4,a5
+    805e0be2:	00a70023          	sb	a0,0(a4)
+    805e0be6:	0785                	addi	a5,a5,1
+    for (int n=0; n<16; n++) {
+    805e0be8:	fed791e3          	bne	a5,a3,805e0bca <main+0xbb6>
+                            app_size = flash2uint32(cfg_address+1);
+    805e0bec:	0019851b          	addiw	a0,s3,1
+    cfg_info[15] = 0;
+    805e0bf0:	00001797          	auipc	a5,0x1
+    805e0bf4:	32078ba3          	sb	zero,823(a5) # 805e1f27 <cfg_info+0xf>
+                            app_size = flash2uint32(cfg_address+1);
+    805e0bf8:	00000097          	auipc	ra,0x0
+    805e0bfc:	316080e7          	jalr	790(ra) # 805e0f0e <flash2uint32>
+            LOG("%c\n\n", (char)char_in);
+    805e0c00:	409c                	lw	a5,0(s1)
+                            app_size = flash2uint32(cfg_address+1);
+    805e0c02:	00001717          	auipc	a4,0x1
+    805e0c06:	eea72b23          	sw	a0,-266(a4) # 805e1af8 <app_size>
+                            app_flash_start = cfg_address;
+    805e0c0a:	00001717          	auipc	a4,0x1
+    805e0c0e:	ed372323          	sw	s3,-314(a4) # 805e1ad0 <app_flash_start>
+                            char_in += 0x30;
+    805e0c12:	00001717          	auipc	a4,0x1
+    805e0c16:	33272123          	sw	s2,802(a4) # 805e1f34 <char_in>
+            LOG("%c\n\n", (char)char_in);
+    805e0c1a:	ea0796e3          	bnez	a5,805e0ac6 <main+0xab2>
+    if (app_flash_start == DEFAULT_APP_ADDR) {
+    805e0c1e:	67c1                	lui	a5,0x10
+    805e0c20:	d2f980e3          	beq	s3,a5,805e0940 <main+0x92c>
+    805e0c24:	00001917          	auipc	s2,0x1
+    805e0c28:	ed490913          	addi	s2,s2,-300 # 805e1af8 <app_size>
+    805e0c2c:	be45                	j	805e07dc <main+0x7c8>
+            LOG(" d=default ] ? ");
+    805e0c2e:	601c                	ld	a5,0(s0)
+    805e0c30:	00001517          	auipc	a0,0x1
+    805e0c34:	d8050513          	addi	a0,a0,-640 # 805e19b0 <CSWTCH.3+0x1b8>
+    805e0c38:	9782                	jalr	a5
+    805e0c3a:	0c800513          	li	a0,200
+    805e0c3e:	00000097          	auipc	ra,0x0
+    805e0c42:	4ae080e7          	jalr	1198(ra) # 805e10ec <usleep>
+    805e0c46:	bd11                	j	805e0a5a <main+0xa46>
+    uint32_t crc = 0xFFFFFFFF;
+    805e0c48:	57fd                	li	a5,-1
+    805e0c4a:	b609                	j	805e074c <main+0x738>
+            LOG("\nSelect the application number to load [");
+    805e0c4c:	601c                	ld	a5,0(s0)
+    805e0c4e:	00001517          	auipc	a0,0x1
+    805e0c52:	d2a50513          	addi	a0,a0,-726 # 805e1978 <CSWTCH.3+0x180>
+    805e0c56:	9782                	jalr	a5
+    805e0c58:	0c800513          	li	a0,200
+    805e0c5c:	00000097          	auipc	ra,0x0
+    805e0c60:	490080e7          	jalr	1168(ra) # 805e10ec <usleep>
+    805e0c64:	b355                	j	805e0a08 <main+0x9f4>
+
+00000000805e0c66 <deregister_tm_clones>:
+    805e0c66:	00001517          	auipc	a0,0x1
+    805e0c6a:	31a50513          	addi	a0,a0,794 # 805e1f80 <__TMC_END__>
+    805e0c6e:	00001797          	auipc	a5,0x1
+    805e0c72:	31278793          	addi	a5,a5,786 # 805e1f80 <__TMC_END__>
+    805e0c76:	00a78963          	beq	a5,a0,805e0c88 <deregister_tm_clones+0x22>
+    805e0c7a:	00000337          	lui	t1,0x0
+    805e0c7e:	00030313          	mv	t1,t1
+    805e0c82:	00030363          	beqz	t1,805e0c88 <deregister_tm_clones+0x22>
+    805e0c86:	8302                	jr	t1
+    805e0c88:	8082                	ret
+
+00000000805e0c8a <__do_global_dtors_aux>:
+    805e0c8a:	00001797          	auipc	a5,0x1
+    805e0c8e:	3267c783          	lbu	a5,806(a5) # 805e1fb0 <completed.5485>
+    805e0c92:	ef85                	bnez	a5,805e0cca <__do_global_dtors_aux+0x40>
+    805e0c94:	1141                	addi	sp,sp,-16
+    805e0c96:	e406                	sd	ra,8(sp)
+    805e0c98:	00000097          	auipc	ra,0x0
+    805e0c9c:	fce080e7          	jalr	-50(ra) # 805e0c66 <deregister_tm_clones>
+    805e0ca0:	000007b7          	lui	a5,0x0
+    805e0ca4:	00078793          	mv	a5,a5
+    805e0ca8:	cb89                	beqz	a5,805e0cba <__do_global_dtors_aux+0x30>
+    805e0caa:	00001517          	auipc	a0,0x1
+    805e0cae:	e1650513          	addi	a0,a0,-490 # 805e1ac0 <__FRAME_END__>
+    805e0cb2:	00000097          	auipc	ra,0x0
+    805e0cb6:	000000e7          	jalr	zero # 0 <_start-0x805e0000>
+    805e0cba:	60a2                	ld	ra,8(sp)
+    805e0cbc:	4785                	li	a5,1
+    805e0cbe:	00001717          	auipc	a4,0x1
+    805e0cc2:	2ef70923          	sb	a5,754(a4) # 805e1fb0 <completed.5485>
+    805e0cc6:	0141                	addi	sp,sp,16
+    805e0cc8:	8082                	ret
+    805e0cca:	8082                	ret
+
+00000000805e0ccc <fpioa_set_io_pull>:
+}
+
+int fpioa_set_io_pull(int number, fpioa_pull_t pull)
+{
+    /* Check parameters */
+    if(number < 0 || number >= FPIOA_NUM_IO || pull >= FPIOA_PULL_MAX)
+    805e0ccc:	02f00793          	li	a5,47
+    805e0cd0:	04a7ec63          	bltu	a5,a0,805e0d28 <fpioa_set_io_pull+0x5c>
+    805e0cd4:	4789                	li	a5,2
+    805e0cd6:	04b7e963          	bltu	a5,a1,805e0d28 <fpioa_set_io_pull+0x5c>
+        return -1;
+
+    /* Atomic read register */
+    fpioa_io_config_t cfg = fpioa->io[number];
+    805e0cda:	1582                	slli	a1,a1,0x20
+    805e0cdc:	9181                	srli	a1,a1,0x20
+            break;
+        default:
+            break;
+    }
+    /* Atomic write register */
+    fpioa->io[number] = cfg;
+    805e0cde:	00000717          	auipc	a4,0x0
+    805e0ce2:	6fa70713          	addi	a4,a4,1786 # 805e13d8 <CSWTCH.14>
+    805e0ce6:	972e                	add	a4,a4,a1
+    fpioa_io_config_t cfg = fpioa->io[number];
+    805e0ce8:	502b07b7          	lui	a5,0x502b0
+    805e0cec:	050a                	slli	a0,a0,0x2
+    805e0cee:	953e                	add	a0,a0,a5
+    fpioa->io[number] = cfg;
+    805e0cf0:	00074783          	lbu	a5,0(a4)
+    805e0cf4:	00000697          	auipc	a3,0x0
+    805e0cf8:	6ec68693          	addi	a3,a3,1772 # 805e13e0 <CSWTCH.15>
+    805e0cfc:	95b6                	add	a1,a1,a3
+    fpioa_io_config_t cfg = fpioa->io[number];
+    805e0cfe:	4118                	lw	a4,0(a0)
+    switch(pull)
+    805e0d00:	0005c683          	lbu	a3,0(a1)
+    fpioa->io[number] = cfg;
+    805e0d04:	8b85                	andi	a5,a5,1
+    805e0d06:	0107961b          	slliw	a2,a5,0x10
+    805e0d0a:	77c1                	lui	a5,0xffff0
+    805e0d0c:	17fd                	addi	a5,a5,-1
+    805e0d0e:	8ff9                	and	a5,a5,a4
+    805e0d10:	0016f713          	andi	a4,a3,1
+    805e0d14:	7681                	lui	a3,0xfffe0
+    805e0d16:	8fd1                	or	a5,a5,a2
+    805e0d18:	16fd                	addi	a3,a3,-1
+    805e0d1a:	0117171b          	slliw	a4,a4,0x11
+    805e0d1e:	8ff5                	and	a5,a5,a3
+    805e0d20:	8fd9                	or	a5,a5,a4
+    805e0d22:	c11c                	sw	a5,0(a0)
+    return 0;
+    805e0d24:	4501                	li	a0,0
+    805e0d26:	8082                	ret
+        return -1;
+    805e0d28:	557d                	li	a0,-1
+}
+    805e0d2a:	8082                	ret
+
+00000000805e0d2c <fpioa_set_function_raw>:
+}
+
+int fpioa_set_function_raw(int number, fpioa_function_t function)
+{
+    /* Check parameters */
+    if(number < 0 || number >= FPIOA_NUM_IO || function < 0 || function >= FUNC_MAX)
+    805e0d2c:	02f00793          	li	a5,47
+    805e0d30:	02a7e963          	bltu	a5,a0,805e0d62 <fpioa_set_function_raw+0x36>
+    805e0d34:	0ff00793          	li	a5,255
+    805e0d38:	02b7e563          	bltu	a5,a1,805e0d62 <fpioa_set_function_raw+0x36>
+        return -1;
+    /* Atomic write register */
+    fpioa->io[number] = (const fpioa_io_config_t){
+        .ch_sel = function_config[function].ch_sel,
+    805e0d3c:	1582                	slli	a1,a1,0x20
+    805e0d3e:	00000797          	auipc	a5,0x0
+    805e0d42:	6aa78793          	addi	a5,a5,1706 # 805e13e8 <function_config>
+    805e0d46:	81f9                	srli	a1,a1,0x1e
+    805e0d48:	95be                	add	a1,a1,a5
+    805e0d4a:	419c                	lw	a5,0(a1)
+    fpioa->io[number] = (const fpioa_io_config_t){
+    805e0d4c:	00fc0737          	lui	a4,0xfc0
+    805e0d50:	177d                	addi	a4,a4,-1
+    805e0d52:	8f7d                	and	a4,a4,a5
+    805e0d54:	050a                	slli	a0,a0,0x2
+    805e0d56:	502b07b7          	lui	a5,0x502b0
+    805e0d5a:	953e                	add	a0,a0,a5
+    805e0d5c:	c118                	sw	a4,0(a0)
+        .ie_inv = function_config[function].ie_inv,
+        .di_inv = function_config[function].di_inv,
+        .st = function_config[function].st,
+        /* resv and pad_di do not need initialization */
+    };
+    return 0;
+    805e0d5e:	4501                	li	a0,0
+    805e0d60:	8082                	ret
+        return -1;
+    805e0d62:	557d                	li	a0,-1
+}
+    805e0d64:	8082                	ret
+
+00000000805e0d66 <fpioa_set_function>:
+
+int fpioa_set_function(int number, fpioa_function_t function)
+{
+    uint8_t index = 0;
+    /* Check parameters */
+    if(number < 0 || number >= FPIOA_NUM_IO || function < 0 || function >= FUNC_MAX)
+    805e0d66:	02f00793          	li	a5,47
+    805e0d6a:	08a7e063          	bltu	a5,a0,805e0dea <fpioa_set_function+0x84>
+{
+    805e0d6e:	7179                	addi	sp,sp,-48
+    805e0d70:	ec26                	sd	s1,24(sp)
+    805e0d72:	f406                	sd	ra,40(sp)
+    805e0d74:	f022                	sd	s0,32(sp)
+    805e0d76:	e84a                	sd	s2,16(sp)
+    805e0d78:	e44e                	sd	s3,8(sp)
+    805e0d7a:	e052                	sd	s4,0(sp)
+    if(number < 0 || number >= FPIOA_NUM_IO || function < 0 || function >= FUNC_MAX)
+    805e0d7c:	0ff00793          	li	a5,255
+    805e0d80:	84ae                	mv	s1,a1
+    805e0d82:	06b7e663          	bltu	a5,a1,805e0dee <fpioa_set_function+0x88>
+        return -1;
+    if(function == FUNC_RESV0)
+    805e0d86:	07800793          	li	a5,120
+    805e0d8a:	8a2a                	mv	s4,a0
+    805e0d8c:	4401                	li	s0,0
+        return 0;
+    }
+    /* Compare all IO */
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    {
+        if((fpioa->io[index].ch_sel == function) && (index != number))
+    805e0d8e:	502b09b7          	lui	s3,0x502b0
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    805e0d92:	03000913          	li	s2,48
+    if(function == FUNC_RESV0)
+    805e0d96:	02f58163          	beq	a1,a5,805e0db8 <fpioa_set_function+0x52>
+        if((fpioa->io[index].ch_sel == function) && (index != number))
+    805e0d9a:	0004071b          	sext.w	a4,s0
+    805e0d9e:	00271793          	slli	a5,a4,0x2
+    805e0da2:	97ce                	add	a5,a5,s3
+    805e0da4:	439c                	lw	a5,0(a5)
+    805e0da6:	2405                	addiw	s0,s0,1
+    805e0da8:	0ff7f793          	andi	a5,a5,255
+    805e0dac:	02978363          	beq	a5,s1,805e0dd2 <fpioa_set_function+0x6c>
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    805e0db0:	ff2415e3          	bne	s0,s2,805e0d9a <fpioa_set_function+0x34>
+            fpioa_set_function_raw(index, FUNC_RESV0);
+    }
+    fpioa_set_function_raw(number, function);
+    805e0db4:	85a6                	mv	a1,s1
+    805e0db6:	8552                	mv	a0,s4
+    805e0db8:	00000097          	auipc	ra,0x0
+    805e0dbc:	f74080e7          	jalr	-140(ra) # 805e0d2c <fpioa_set_function_raw>
+    return 0;
+    805e0dc0:	4501                	li	a0,0
+}
+    805e0dc2:	70a2                	ld	ra,40(sp)
+    805e0dc4:	7402                	ld	s0,32(sp)
+    805e0dc6:	64e2                	ld	s1,24(sp)
+    805e0dc8:	6942                	ld	s2,16(sp)
+    805e0dca:	69a2                	ld	s3,8(sp)
+    805e0dcc:	6a02                	ld	s4,0(sp)
+    805e0dce:	6145                	addi	sp,sp,48
+    805e0dd0:	8082                	ret
+            fpioa_set_function_raw(index, FUNC_RESV0);
+    805e0dd2:	07800593          	li	a1,120
+    805e0dd6:	853a                	mv	a0,a4
+        if((fpioa->io[index].ch_sel == function) && (index != number))
+    805e0dd8:	fd470ce3          	beq	a4,s4,805e0db0 <fpioa_set_function+0x4a>
+            fpioa_set_function_raw(index, FUNC_RESV0);
+    805e0ddc:	00000097          	auipc	ra,0x0
+    805e0de0:	f50080e7          	jalr	-176(ra) # 805e0d2c <fpioa_set_function_raw>
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    805e0de4:	fb241be3          	bne	s0,s2,805e0d9a <fpioa_set_function+0x34>
+    805e0de8:	b7f1                	j	805e0db4 <fpioa_set_function+0x4e>
+        return -1;
+    805e0dea:	557d                	li	a0,-1
+}
+    805e0dec:	8082                	ret
+        return -1;
+    805e0dee:	557d                	li	a0,-1
+    805e0df0:	bfc9                	j	805e0dc2 <fpioa_set_function+0x5c>
+
+00000000805e0df2 <fpioa_get_io_by_function>:
+}
+
+int fpioa_get_io_by_function(fpioa_function_t function)
+{
+    int index = 0;
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    805e0df2:	4781                	li	a5,0
+    {
+        if(fpioa->io[index].ch_sel == function)
+    805e0df4:	502b06b7          	lui	a3,0x502b0
+    for(index = 0; index < FPIOA_NUM_IO; index++)
+    805e0df8:	03000613          	li	a2,48
+    805e0dfc:	a021                	j	805e0e04 <fpioa_get_io_by_function+0x12>
+    805e0dfe:	2785                	addiw	a5,a5,1
+    805e0e00:	00c78c63          	beq	a5,a2,805e0e18 <fpioa_get_io_by_function+0x26>
+        if(fpioa->io[index].ch_sel == function)
+    805e0e04:	00279713          	slli	a4,a5,0x2
+    805e0e08:	9736                	add	a4,a4,a3
+    805e0e0a:	4318                	lw	a4,0(a4)
+    805e0e0c:	0ff77713          	andi	a4,a4,255
+    805e0e10:	fea717e3          	bne	a4,a0,805e0dfe <fpioa_get_io_by_function+0xc>
+            return index;
+    }
+
+    return -1;
+}
+    805e0e14:	853e                	mv	a0,a5
+    805e0e16:	8082                	ret
+    return -1;
+    805e0e18:	57fd                	li	a5,-1
+}
+    805e0e1a:	853e                	mv	a0,a5
+    805e0e1c:	8082                	ret
+
+00000000805e0e1e <set_bit>:
+static gpiohs_pin_instance_t pin_instance[32];
+*/
+
+void set_bit(volatile uint32_t *bits, uint32_t mask, uint32_t value)
+{
+    uint32_t org = (*bits) & ~mask;
+    805e0e1e:	411c                	lw	a5,0(a0)
+    805e0e20:	2781                	sext.w	a5,a5
+    *bits = org | (value & mask);
+    805e0e22:	8e3d                	xor	a2,a2,a5
+    805e0e24:	8df1                	and	a1,a1,a2
+    805e0e26:	8fad                	xor	a5,a5,a1
+    805e0e28:	c11c                	sw	a5,0(a0)
+}
+    805e0e2a:	8082                	ret
+
+00000000805e0e2c <set_bit_offset>:
+
+void set_bit_offset(volatile uint32_t *bits, uint32_t mask, size_t offset, uint32_t value)
+{
+    set_bit(bits, mask << offset, value << offset);
+    805e0e2c:	0006079b          	sext.w	a5,a2
+    805e0e30:	00f6963b          	sllw	a2,a3,a5
+    805e0e34:	00f595bb          	sllw	a1,a1,a5
+    805e0e38:	00000317          	auipc	t1,0x0
+    805e0e3c:	fe630067          	jr	-26(t1) # 805e0e1e <set_bit>
+
+00000000805e0e40 <set_gpio_bit>:
+}
+
+void set_gpio_bit(volatile uint32_t *bits, size_t offset, uint32_t value)
+{
+    set_bit_offset(bits, 1, offset, value);
+    805e0e40:	86b2                	mv	a3,a2
+    805e0e42:	862e                	mv	a2,a1
+    805e0e44:	4585                	li	a1,1
+    805e0e46:	00000317          	auipc	t1,0x0
+    805e0e4a:	fe630067          	jr	-26(t1) # 805e0e2c <set_bit_offset>
+
+00000000805e0e4e <get_bit>:
+}
+
+uint32_t get_bit(volatile uint32_t *bits, uint32_t mask, size_t offset)
+{
+    return ((*bits) & (mask << offset)) >> offset;
+    805e0e4e:	411c                	lw	a5,0(a0)
+    805e0e50:	2601                	sext.w	a2,a2
+    805e0e52:	00c595bb          	sllw	a1,a1,a2
+    805e0e56:	2781                	sext.w	a5,a5
+    805e0e58:	8fed                	and	a5,a5,a1
+}
+    805e0e5a:	00c7d53b          	srlw	a0,a5,a2
+    805e0e5e:	8082                	ret
+
+00000000805e0e60 <get_gpio_bit>:
+
+uint32_t get_gpio_bit(volatile uint32_t *bits, size_t offset)
+{
+    return get_bit(bits, 1, offset);
+    805e0e60:	862e                	mv	a2,a1
+    805e0e62:	4585                	li	a1,1
+    805e0e64:	00000317          	auipc	t1,0x0
+    805e0e68:	fea30067          	jr	-22(t1) # 805e0e4e <get_bit>
+
+00000000805e0e6c <gpiohs_set_drive_mode>:
+
+
+
+
+void gpiohs_set_drive_mode(uint8_t pin, gpio_drive_mode_t mode)
+{
+    805e0e6c:	1101                	addi	sp,sp,-32
+    805e0e6e:	e426                	sd	s1,8(sp)
+    805e0e70:	84aa                	mv	s1,a0
+    int io_number = fpioa_get_io_by_function(FUNC_GPIOHS0 + pin);
+    805e0e72:	0561                	addi	a0,a0,24
+{
+    805e0e74:	e822                	sd	s0,16(sp)
+    805e0e76:	ec06                	sd	ra,24(sp)
+    805e0e78:	842e                	mv	s0,a1
+    int io_number = fpioa_get_io_by_function(FUNC_GPIOHS0 + pin);
+    805e0e7a:	00000097          	auipc	ra,0x0
+    805e0e7e:	f78080e7          	jalr	-136(ra) # 805e0df2 <fpioa_get_io_by_function>
+
+    fpioa_pull_t pull = FPIOA_PULL_NONE;
+    uint32_t dir = 0;
+
+    switch(mode)
+    805e0e82:	fff4059b          	addiw	a1,s0,-1
+    805e0e86:	0005871b          	sext.w	a4,a1
+    805e0e8a:	4789                	li	a5,2
+    805e0e8c:	02e7fd63          	bleu	a4,a5,805e0ec6 <gpiohs_set_drive_mode+0x5a>
+            break;
+        default:
+            break;
+    }
+
+    fpioa_set_io_pull(io_number, pull);
+    805e0e90:	4581                	li	a1,0
+    805e0e92:	00000097          	auipc	ra,0x0
+    805e0e96:	e3a080e7          	jalr	-454(ra) # 805e0ccc <fpioa_set_io_pull>
+    volatile uint32_t *reg = dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0e9a:	38001537          	lui	a0,0x38001
+    805e0e9e:	00450413          	addi	s0,a0,4 # 38001004 <_start-0x485deffc>
+    volatile uint32_t *reg_d = !dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0ea2:	0521                	addi	a0,a0,8
+    set_gpio_bit(reg_d, pin, 0);
+    805e0ea4:	85a6                	mv	a1,s1
+    805e0ea6:	4601                	li	a2,0
+    805e0ea8:	00000097          	auipc	ra,0x0
+    805e0eac:	f98080e7          	jalr	-104(ra) # 805e0e40 <set_gpio_bit>
+    set_gpio_bit(reg, pin, 1);
+    805e0eb0:	8522                	mv	a0,s0
+}
+    805e0eb2:	6442                	ld	s0,16(sp)
+    805e0eb4:	60e2                	ld	ra,24(sp)
+    set_gpio_bit(reg, pin, 1);
+    805e0eb6:	85a6                	mv	a1,s1
+}
+    805e0eb8:	64a2                	ld	s1,8(sp)
+    set_gpio_bit(reg, pin, 1);
+    805e0eba:	4605                	li	a2,1
+}
+    805e0ebc:	6105                	addi	sp,sp,32
+    set_gpio_bit(reg, pin, 1);
+    805e0ebe:	00000317          	auipc	t1,0x0
+    805e0ec2:	f8230067          	jr	-126(t1) # 805e0e40 <set_gpio_bit>
+    805e0ec6:	1582                	slli	a1,a1,0x20
+    805e0ec8:	81f9                	srli	a1,a1,0x1e
+    fpioa_set_io_pull(io_number, pull);
+    805e0eca:	00001797          	auipc	a5,0x1
+    805e0ece:	91e78793          	addi	a5,a5,-1762 # 805e17e8 <CSWTCH.2>
+    805e0ed2:	00001717          	auipc	a4,0x1
+    805e0ed6:	92670713          	addi	a4,a4,-1754 # 805e17f8 <CSWTCH.3>
+    805e0eda:	972e                	add	a4,a4,a1
+    805e0edc:	95be                	add	a1,a1,a5
+    805e0ede:	418c                	lw	a1,0(a1)
+    805e0ee0:	4300                	lw	s0,0(a4)
+    805e0ee2:	00000097          	auipc	ra,0x0
+    805e0ee6:	dea080e7          	jalr	-534(ra) # 805e0ccc <fpioa_set_io_pull>
+    volatile uint32_t *reg = dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0eea:	38001537          	lui	a0,0x38001
+    805e0eee:	c409                	beqz	s0,805e0ef8 <gpiohs_set_drive_mode+0x8c>
+    805e0ef0:	00850413          	addi	s0,a0,8 # 38001008 <_start-0x485deff8>
+    volatile uint32_t *reg_d = !dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0ef4:	0511                	addi	a0,a0,4
+    805e0ef6:	b77d                	j	805e0ea4 <gpiohs_set_drive_mode+0x38>
+    volatile uint32_t *reg = dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0ef8:	00450413          	addi	s0,a0,4
+    volatile uint32_t *reg_d = !dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    805e0efc:	0521                	addi	a0,a0,8
+    805e0efe:	b75d                	j	805e0ea4 <gpiohs_set_drive_mode+0x38>
+
+00000000805e0f00 <gpiohs_get_pin>:
+
+gpio_pin_value_t gpiohs_get_pin(uint8_t pin)
+{
+    return get_gpio_bit(gpiohs->input_val.u32, pin);
+    805e0f00:	85aa                	mv	a1,a0
+    805e0f02:	38001537          	lui	a0,0x38001
+    805e0f06:	00000317          	auipc	t1,0x0
+    805e0f0a:	f5a30067          	jr	-166(t1) # 805e0e60 <get_gpio_bit>
+
+00000000805e0f0e <flash2uint32>:
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f0e:	0015079b          	addiw	a5,a0,1
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f12:	0025069b          	addiw	a3,a0,2
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f16:	1782                	slli	a5,a5,0x20
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f18:	1682                	slli	a3,a3,0x20
+    uint32_t val = app_flash_ptr[addr];
+    805e0f1a:	54000737          	lui	a4,0x54000
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f1e:	0035061b          	addiw	a2,a0,3
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f22:	9381                	srli	a5,a5,0x20
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f24:	9281                	srli	a3,a3,0x20
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f26:	97ba                	add	a5,a5,a4
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f28:	96ba                	add	a3,a3,a4
+    uint32_t val = app_flash_ptr[addr];
+    805e0f2a:	1502                	slli	a0,a0,0x20
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f2c:	1602                	slli	a2,a2,0x20
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f2e:	0007c783          	lbu	a5,0(a5)
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f32:	0006c683          	lbu	a3,0(a3) # 502b0000 <_start-0x30330000>
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f36:	9201                	srli	a2,a2,0x20
+    uint32_t val = app_flash_ptr[addr];
+    805e0f38:	9101                	srli	a0,a0,0x20
+    805e0f3a:	953a                	add	a0,a0,a4
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f3c:	9732                	add	a4,a4,a2
+    uint32_t val = app_flash_ptr[addr];
+    805e0f3e:	00054603          	lbu	a2,0(a0) # 38001000 <_start-0x485df000>
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f42:	00074503          	lbu	a0,0(a4) # 54000000 <_start-0x2c5e0000>
+    val += app_flash_ptr[addr+1] << 8;
+    805e0f46:	0087979b          	slliw	a5,a5,0x8
+    val += app_flash_ptr[addr+2] << 16;
+    805e0f4a:	0106971b          	slliw	a4,a3,0x10
+    805e0f4e:	9fb9                	addw	a5,a5,a4
+    805e0f50:	9fb1                	addw	a5,a5,a2
+    val += app_flash_ptr[addr+3] << 24;
+    805e0f52:	0185151b          	slliw	a0,a0,0x18
+}
+    805e0f56:	9d3d                	addw	a0,a0,a5
+    805e0f58:	8082                	ret
+
+00000000805e0f5a <app_sha256>:
+{
+    805e0f5a:	711d                	addi	sp,sp,-96
+    805e0f5c:	fc4e                	sd	s3,56(sp)
+    int size = cfg_size+5;
+    805e0f5e:	00001997          	auipc	s3,0x1
+    805e0f62:	fd298993          	addi	s3,s3,-46 # 805e1f30 <cfg_size>
+{
+    805e0f66:	f05a                	sd	s6,32(sp)
+    int size = cfg_size+5;
+    805e0f68:	0009ab03          	lw	s6,0(s3)
+    sha256_init(&context, size);
+    805e0f6c:	00001517          	auipc	a0,0x1
+    805e0f70:	04c50513          	addi	a0,a0,76 # 805e1fb8 <context>
+{
+    805e0f74:	e466                	sd	s9,8(sp)
+    int size = cfg_size+5;
+    805e0f76:	2b15                	addiw	s6,s6,5
+    sha256_init(&context, size);
+    805e0f78:	85da                	mv	a1,s6
+{
+    805e0f7a:	ec86                	sd	ra,88(sp)
+    805e0f7c:	e8a2                	sd	s0,80(sp)
+    805e0f7e:	e4a6                	sd	s1,72(sp)
+    805e0f80:	e0ca                	sd	s2,64(sp)
+    805e0f82:	f852                	sd	s4,48(sp)
+    805e0f84:	f456                	sd	s5,40(sp)
+    805e0f86:	ec5e                	sd	s7,24(sp)
+    805e0f88:	e862                	sd	s8,16(sp)
+    805e0f8a:	00001c97          	auipc	s9,0x1
+    805e0f8e:	f86c8c93          	addi	s9,s9,-122 # 805e1f10 <cfg_address>
+    sha256_init(&context, size);
+    805e0f92:	00000097          	auipc	ra,0x0
+    805e0f96:	184080e7          	jalr	388(ra) # 805e1116 <sha256_init>
+    while (size > 0) {
+    805e0f9a:	09605663          	blez	s6,805e1026 <app_sha256+0xcc>
+    uint32_t idx = 0;
+    805e0f9e:	4b81                	li	s7,0
+    805e0fa0:	00001c97          	auipc	s9,0x1
+    805e0fa4:	f70c8c93          	addi	s9,s9,-144 # 805e1f10 <cfg_address>
+    805e0fa8:	00001917          	auipc	s2,0x1
+    805e0fac:	b6990913          	addi	s2,s2,-1175 # 805e1b11 <buffer+0x1>
+        sz = (size >= 1024) ? 1024 : size;
+    805e0fb0:	40000493          	li	s1,1024
+    805e0fb4:	00001c17          	auipc	s8,0x1
+    805e0fb8:	b5cc0c13          	addi	s8,s8,-1188 # 805e1b10 <buffer>
+            buffer[n] = app_flash_ptr[cfg_address + idx + n];
+    805e0fbc:	54000a37          	lui	s4,0x54000
+        sha256_update(&context, buffer, sz);
+    805e0fc0:	00001417          	auipc	s0,0x1
+    805e0fc4:	ff840413          	addi	s0,s0,-8 # 805e1fb8 <context>
+        sz = (size >= 1024) ? 1024 : size;
+    805e0fc8:	87da                	mv	a5,s6
+    805e0fca:	0164d463          	ble	s6,s1,805e0fd2 <app_sha256+0x78>
+    805e0fce:	40000793          	li	a5,1024
+            buffer[n] = app_flash_ptr[cfg_address + idx + n];
+    805e0fd2:	000ca683          	lw	a3,0(s9)
+    805e0fd6:	fff7861b          	addiw	a2,a5,-1
+    805e0fda:	1602                	slli	a2,a2,0x20
+    805e0fdc:	9201                	srli	a2,a2,0x20
+    805e0fde:	017686bb          	addw	a3,a3,s7
+        sz = (size >= 1024) ? 1024 : size;
+    805e0fe2:	00078a9b          	sext.w	s5,a5
+        for (int n=0; n<sz; n++) {
+    805e0fe6:	964a                	add	a2,a2,s2
+            buffer[n] = app_flash_ptr[cfg_address + idx + n];
+    805e0fe8:	00001717          	auipc	a4,0x1
+    805e0fec:	b2870713          	addi	a4,a4,-1240 # 805e1b10 <buffer>
+    805e0ff0:	418686bb          	subw	a3,a3,s8
+    805e0ff4:	00e687bb          	addw	a5,a3,a4
+    805e0ff8:	1782                	slli	a5,a5,0x20
+    805e0ffa:	9381                	srli	a5,a5,0x20
+    805e0ffc:	97d2                	add	a5,a5,s4
+    805e0ffe:	0007c783          	lbu	a5,0(a5)
+    805e1002:	0705                	addi	a4,a4,1
+    805e1004:	fef70fa3          	sb	a5,-1(a4)
+        for (int n=0; n<sz; n++) {
+    805e1008:	fec716e3          	bne	a4,a2,805e0ff4 <app_sha256+0x9a>
+        sha256_update(&context, buffer, sz);
+    805e100c:	8656                	mv	a2,s5
+    805e100e:	85e2                	mv	a1,s8
+    805e1010:	8522                	mv	a0,s0
+        size -= sz;
+    805e1012:	415b0b3b          	subw	s6,s6,s5
+        sha256_update(&context, buffer, sz);
+    805e1016:	00000097          	auipc	ra,0x0
+    805e101a:	188080e7          	jalr	392(ra) # 805e119e <sha256_update>
+        idx += sz;
+    805e101e:	015b8bbb          	addw	s7,s7,s5
+    while (size > 0) {
+    805e1022:	fb6043e3          	bgtz	s6,805e0fc8 <app_sha256+0x6e>
+    sha256_final(&context, hash);
+    805e1026:	00001597          	auipc	a1,0x1
+    805e102a:	f1a58593          	addi	a1,a1,-230 # 805e1f40 <hash>
+    805e102e:	00001517          	auipc	a0,0x1
+    805e1032:	f8a50513          	addi	a0,a0,-118 # 805e1fb8 <context>
+    805e1036:	00000097          	auipc	ra,0x0
+    805e103a:	20a080e7          	jalr	522(ra) # 805e1240 <sha256_final>
+    offset = cfg_address + cfg_size + 5;
+    805e103e:	000ca683          	lw	a3,0(s9)
+    805e1042:	0009a783          	lw	a5,0(s3)
+    805e1046:	00001617          	auipc	a2,0x1
+    805e104a:	a9260613          	addi	a2,a2,-1390 # 805e1ad8 <app_hash>
+    805e104e:	00001517          	auipc	a0,0x1
+    805e1052:	aaa50513          	addi	a0,a0,-1366 # 805e1af8 <app_size>
+    805e1056:	9ebd                	addw	a3,a3,a5
+    805e1058:	2695                	addiw	a3,a3,5
+    805e105a:	8732                	mv	a4,a2
+    805e105c:	9e91                	subw	a3,a3,a2
+        app_hash[n] = app_flash_ptr[offset + n];
+    805e105e:	540005b7          	lui	a1,0x54000
+    805e1062:	00e687bb          	addw	a5,a3,a4
+    805e1066:	1782                	slli	a5,a5,0x20
+    805e1068:	9381                	srli	a5,a5,0x20
+    805e106a:	97ae                	add	a5,a5,a1
+    805e106c:	0007c783          	lbu	a5,0(a5)
+    805e1070:	0705                	addi	a4,a4,1
+    805e1072:	fef70fa3          	sb	a5,-1(a4)
+    for (int n=0; n<SHA256_HASH_LEN; n++) {
+    805e1076:	fee516e3          	bne	a0,a4,805e1062 <app_sha256+0x108>
+    805e107a:	00001797          	auipc	a5,0x1
+    805e107e:	ec678793          	addi	a5,a5,-314 # 805e1f40 <hash>
+    805e1082:	00001597          	auipc	a1,0x1
+    805e1086:	ede58593          	addi	a1,a1,-290 # 805e1f60 <i>
+    805e108a:	a019                	j	805e1090 <app_sha256+0x136>
+    for (idx=0; idx<SHA256_HASH_LEN; idx++) {
+    805e108c:	04f58e63          	beq	a1,a5,805e10e8 <app_sha256+0x18e>
+        if (hash[idx] != app_hash[idx]) {
+    805e1090:	0007c683          	lbu	a3,0(a5)
+    805e1094:	00064703          	lbu	a4,0(a2)
+    805e1098:	0785                	addi	a5,a5,1
+    805e109a:	0605                	addi	a2,a2,1
+    805e109c:	fee688e3          	beq	a3,a4,805e108c <app_sha256+0x132>
+            LOG("SHA256 error, ");
+    805e10a0:	00001797          	auipc	a5,0x1
+    805e10a4:	ec878793          	addi	a5,a5,-312 # 805e1f68 <print_enabled>
+    805e10a8:	4388                	lw	a0,0(a5)
+    805e10aa:	c115                	beqz	a0,805e10ce <app_sha256+0x174>
+    805e10ac:	00001797          	auipc	a5,0x1
+    805e10b0:	edc7b783          	ld	a5,-292(a5) # 805e1f88 <__TMC_END__+0x8>
+    805e10b4:	639c                	ld	a5,0(a5)
+    805e10b6:	00000517          	auipc	a0,0x0
+    805e10ba:	75250513          	addi	a0,a0,1874 # 805e1808 <CSWTCH.3+0x10>
+    805e10be:	9782                	jalr	a5
+    805e10c0:	0c800513          	li	a0,200
+    805e10c4:	00000097          	auipc	ra,0x0
+    805e10c8:	028080e7          	jalr	40(ra) # 805e10ec <usleep>
+            return 0;
+    805e10cc:	4501                	li	a0,0
+}
+    805e10ce:	60e6                	ld	ra,88(sp)
+    805e10d0:	6446                	ld	s0,80(sp)
+    805e10d2:	64a6                	ld	s1,72(sp)
+    805e10d4:	6906                	ld	s2,64(sp)
+    805e10d6:	79e2                	ld	s3,56(sp)
+    805e10d8:	7a42                	ld	s4,48(sp)
+    805e10da:	7aa2                	ld	s5,40(sp)
+    805e10dc:	7b02                	ld	s6,32(sp)
+    805e10de:	6be2                	ld	s7,24(sp)
+    805e10e0:	6c42                	ld	s8,16(sp)
+    805e10e2:	6ca2                	ld	s9,8(sp)
+    805e10e4:	6125                	addi	sp,sp,96
+    805e10e6:	8082                	ret
+    return 1;
+    805e10e8:	4505                	li	a0,1
+    805e10ea:	b7d5                	j	805e10ce <app_sha256+0x174>
+
+00000000805e10ec <usleep>:
+#define BYTESWAP(x) ((ROTR((x), 8) & 0xff00ff00L) | (ROTL((x), 8) & 0x00ff00ffL))
+#define BYTESWAP64(x) byteswap64(x)
+
+int usleep(uint64_t usec)
+{
+    uint64_t cycle = read_cycle();
+    805e10ec:	b0002773          	csrr	a4,mcycle
+    uint64_t nop_all = usec * DEFAULT_CPU_CLOCK / 1000000UL;
+    805e10f0:	173ef7b7          	lui	a5,0x173ef
+    805e10f4:	d8078793          	addi	a5,a5,-640 # 173eed80 <_start-0x691f1280>
+    805e10f8:	02f50533          	mul	a0,a0,a5
+    805e10fc:	000f47b7          	lui	a5,0xf4
+    805e1100:	24078793          	addi	a5,a5,576 # f4240 <_start-0x804ebdc0>
+    805e1104:	02f55533          	divu	a0,a0,a5
+    while(1)
+    {
+        if(read_cycle() - cycle >= nop_all)
+    805e1108:	b00027f3          	csrr	a5,mcycle
+    805e110c:	8f99                	sub	a5,a5,a4
+    805e110e:	fea7ede3          	bltu	a5,a0,805e1108 <usleep+0x1c>
+            break;
+    }
+    return 0;
+}
+    805e1112:	4501                	li	a0,0
+    805e1114:	8082                	ret
+
+00000000805e1116 <sha256_init>:
+    uint32_t b = (uint32_t)x;
+    return ((uint64_t)BYTESWAP(b) << 32) | (uint64_t)BYTESWAP(a);
+}
+
+void sha256_init(sha256_context_t *context, size_t input_len)
+{
+    805e1116:	1101                	addi	sp,sp,-32
+    //sysctl_clock_enable(SYSCTL_CLOCK_SHA);
+    sysctl->clk_en_cent.apb0_clk_en = 1;
+    805e1118:	00001797          	auipc	a5,0x1
+    805e111c:	e787b783          	ld	a5,-392(a5) # 805e1f90 <__TMC_END__+0x10>
+{
+    805e1120:	e822                	sd	s0,16(sp)
+    sysctl->clk_en_cent.apb0_clk_en = 1;
+    805e1122:	6380                	ld	s0,0(a5)
+{
+    805e1124:	e426                	sd	s1,8(sp)
+    805e1126:	e04a                	sd	s2,0(sp)
+    805e1128:	ec06                	sd	ra,24(sp)
+    sysctl->clk_en_cent.apb0_clk_en = 1;
+    805e112a:	5418                	lw	a4,40(s0)
+    sysctl->clk_en_peri.sha_clk_en = 1;
+    805e112c:	040006b7          	lui	a3,0x4000
+{
+    805e1130:	892a                	mv	s2,a0
+    sysctl->clk_en_cent.apb0_clk_en = 1;
+    805e1132:	00876713          	ori	a4,a4,8
+    805e1136:	d418                	sw	a4,40(s0)
+    sysctl->clk_en_peri.sha_clk_en = 1;
+    805e1138:	5458                	lw	a4,44(s0)
+    //sysctl_reset(SYSCTL_RESET_SHA);
+    sysctl->peri_reset.sha_reset = 1;
+    usleep(10);
+    805e113a:	4529                	li	a0,10
+{
+    805e113c:	84ae                	mv	s1,a1
+    sysctl->clk_en_peri.sha_clk_en = 1;
+    805e113e:	8f55                	or	a4,a4,a3
+    805e1140:	d458                	sw	a4,44(s0)
+    sysctl->peri_reset.sha_reset = 1;
+    805e1142:	585c                	lw	a5,52(s0)
+    sysctl->peri_reset.sha_reset = 0;
+
+    sha256->sha_num_reg.sha_data_cnt = (uint32_t)((input_len + SHA256_BLOCK_LEN + 8) / SHA256_BLOCK_LEN);
+    805e1144:	04848493          	addi	s1,s1,72
+    805e1148:	8099                	srli	s1,s1,0x6
+    sysctl->peri_reset.sha_reset = 1;
+    805e114a:	8fd5                	or	a5,a5,a3
+    805e114c:	d85c                	sw	a5,52(s0)
+    usleep(10);
+    805e114e:	00000097          	auipc	ra,0x0
+    805e1152:	f9e080e7          	jalr	-98(ra) # 805e10ec <usleep>
+    sysctl->peri_reset.sha_reset = 0;
+    805e1156:	585c                	lw	a5,52(s0)
+    805e1158:	fc000737          	lui	a4,0xfc000
+    805e115c:	177d                	addi	a4,a4,-1
+    805e115e:	8ff9                	and	a5,a5,a4
+    805e1160:	d85c                	sw	a5,52(s0)
+    sha256->sha_num_reg.sha_data_cnt = (uint32_t)((input_len + SHA256_BLOCK_LEN + 8) / SHA256_BLOCK_LEN);
+    805e1162:	502c07b7          	lui	a5,0x502c0
+    805e1166:	5798                	lw	a4,40(a5)
+    805e1168:	76c1                	lui	a3,0xffff0
+    805e116a:	14c2                	slli	s1,s1,0x30
+    805e116c:	8f75                	and	a4,a4,a3
+    805e116e:	90c1                	srli	s1,s1,0x30
+    805e1170:	8cd9                	or	s1,s1,a4
+    805e1172:	d784                	sw	s1,40(a5)
+    sha256->sha_function_reg_1.dma_en = 0x0;
+    805e1174:	5bd8                	lw	a4,52(a5)
+    sha256->sha_function_reg_0.sha_endian = SHA256_BIG_ENDIAN;
+    805e1176:	66c1                	lui	a3,0x10
+    sha256->sha_function_reg_1.dma_en = 0x0;
+    805e1178:	9b79                	andi	a4,a4,-2
+    805e117a:	dbd8                	sw	a4,52(a5)
+    sha256->sha_function_reg_0.sha_endian = SHA256_BIG_ENDIAN;
+    805e117c:	57d8                	lw	a4,44(a5)
+    805e117e:	8f55                	or	a4,a4,a3
+    805e1180:	d7d8                	sw	a4,44(a5)
+    sha256->sha_function_reg_0.sha_en = ENABLE_SHA;
+    805e1182:	57d8                	lw	a4,44(a5)
+    805e1184:	00176713          	ori	a4,a4,1
+    805e1188:	d7d8                	sw	a4,44(a5)
+    context->total_len = 0L;
+    context->buffer_len = 0L;
+}
+    805e118a:	60e2                	ld	ra,24(sp)
+    805e118c:	6442                	ld	s0,16(sp)
+    context->total_len = 0L;
+    805e118e:	00093023          	sd	zero,0(s2)
+    context->buffer_len = 0L;
+    805e1192:	00093423          	sd	zero,8(s2)
+}
+    805e1196:	64a2                	ld	s1,8(sp)
+    805e1198:	6902                	ld	s2,0(sp)
+    805e119a:	6105                	addi	sp,sp,32
+    805e119c:	8082                	ret
+
+00000000805e119e <sha256_update>:
+    const uint8_t *data = input;
+    size_t buffer_bytes_left;
+    size_t bytes_to_copy;
+    uint32_t i;
+
+    while(input_len)
+    805e119e:	c245                	beqz	a2,805e123e <sha256_update+0xa0>
+{
+    805e11a0:	7139                	addi	sp,sp,-64
+    805e11a2:	f04a                	sd	s2,32(sp)
+    805e11a4:	892a                	mv	s2,a0
+    805e11a6:	6508                	ld	a0,8(a0)
+    805e11a8:	f822                	sd	s0,48(sp)
+    805e11aa:	ec4e                	sd	s3,24(sp)
+    805e11ac:	e852                	sd	s4,16(sp)
+    805e11ae:	e456                	sd	s5,8(sp)
+    805e11b0:	e05a                	sd	s6,0(sp)
+    805e11b2:	fc06                	sd	ra,56(sp)
+    805e11b4:	f426                	sd	s1,40(sp)
+    805e11b6:	89b2                	mv	s3,a2
+    805e11b8:	8a2e                	mv	s4,a1
+    {
+        buffer_bytes_left = SHA256_BLOCK_LEN - context->buffer_len;
+    805e11ba:	04000b13          	li	s6,64
+    805e11be:	05090a93          	addi	s5,s2,80
+        input_len -= bytes_to_copy;
+        if(context->buffer_len == SHA256_BLOCK_LEN)
+        {
+            for(i = 0; i < 16; i++)
+            {
+                while(sha256->sha_function_reg_1.fifo_in_full)
+    805e11c2:	502c0437          	lui	s0,0x502c0
+        buffer_bytes_left = SHA256_BLOCK_LEN - context->buffer_len;
+    805e11c6:	40ab04b3          	sub	s1,s6,a0
+    805e11ca:	0099f363          	bleu	s1,s3,805e11d0 <sha256_update+0x32>
+    805e11ce:	84ce                	mv	s1,s3
+        memcpy(&context->buffer.bytes[context->buffer_len], data, bytes_to_copy);
+    805e11d0:	0541                	addi	a0,a0,16
+    805e11d2:	85d2                	mv	a1,s4
+    805e11d4:	8626                	mv	a2,s1
+    805e11d6:	954a                	add	a0,a0,s2
+    805e11d8:	00000097          	auipc	ra,0x0
+    805e11dc:	144080e7          	jalr	324(ra) # 805e131c <memcpy>
+        context->total_len += bytes_to_copy * 8L;
+    805e11e0:	00093783          	ld	a5,0(s2)
+        context->buffer_len += bytes_to_copy;
+    805e11e4:	00893503          	ld	a0,8(s2)
+        context->total_len += bytes_to_copy * 8L;
+    805e11e8:	00349713          	slli	a4,s1,0x3
+    805e11ec:	97ba                	add	a5,a5,a4
+        context->buffer_len += bytes_to_copy;
+    805e11ee:	9526                	add	a0,a0,s1
+        context->total_len += bytes_to_copy * 8L;
+    805e11f0:	00f93023          	sd	a5,0(s2)
+        context->buffer_len += bytes_to_copy;
+    805e11f4:	00a93423          	sd	a0,8(s2)
+        data += bytes_to_copy;
+    805e11f8:	9a26                	add	s4,s4,s1
+        input_len -= bytes_to_copy;
+    805e11fa:	409989b3          	sub	s3,s3,s1
+        if(context->buffer_len == SHA256_BLOCK_LEN)
+    805e11fe:	01650e63          	beq	a0,s6,805e121a <sha256_update+0x7c>
+    while(input_len)
+    805e1202:	fc0992e3          	bnez	s3,805e11c6 <sha256_update+0x28>
+                sha256->sha_data_in1 = context->buffer.words[i];
+            }
+            context->buffer_len = 0L;
+        }
+    }
+}
+    805e1206:	70e2                	ld	ra,56(sp)
+    805e1208:	7442                	ld	s0,48(sp)
+    805e120a:	74a2                	ld	s1,40(sp)
+    805e120c:	7902                	ld	s2,32(sp)
+    805e120e:	69e2                	ld	s3,24(sp)
+    805e1210:	6a42                	ld	s4,16(sp)
+    805e1212:	6aa2                	ld	s5,8(sp)
+    805e1214:	6b02                	ld	s6,0(sp)
+    805e1216:	6121                	addi	sp,sp,64
+    805e1218:	8082                	ret
+    805e121a:	01090713          	addi	a4,s2,16
+                while(sha256->sha_function_reg_1.fifo_in_full)
+    805e121e:	585c                	lw	a5,52(s0)
+    805e1220:	0087d79b          	srliw	a5,a5,0x8
+    805e1224:	8b85                	andi	a5,a5,1
+    805e1226:	ffe5                	bnez	a5,805e121e <sha256_update+0x80>
+                sha256->sha_data_in1 = context->buffer.words[i];
+    805e1228:	431c                	lw	a5,0(a4)
+    805e122a:	0711                	addi	a4,a4,4
+    805e122c:	d01c                	sw	a5,32(s0)
+            for(i = 0; i < 16; i++)
+    805e122e:	feea98e3          	bne	s5,a4,805e121e <sha256_update+0x80>
+            context->buffer_len = 0L;
+    805e1232:	00093423          	sd	zero,8(s2)
+    805e1236:	4501                	li	a0,0
+    while(input_len)
+    805e1238:	f80997e3          	bnez	s3,805e11c6 <sha256_update+0x28>
+    805e123c:	b7e9                	j	805e1206 <sha256_update+0x68>
+    805e123e:	8082                	ret
+
+00000000805e1240 <sha256_final>:
+{
+    size_t bytes_to_pad;
+    size_t length_pad;
+    uint32_t i;
+
+    bytes_to_pad = 120L - context->buffer_len;
+    805e1240:	651c                	ld	a5,8(a0)
+{
+    805e1242:	7179                	addi	sp,sp,-48
+    bytes_to_pad = 120L - context->buffer_len;
+    805e1244:	07800613          	li	a2,120
+{
+    805e1248:	f022                	sd	s0,32(sp)
+    805e124a:	ec26                	sd	s1,24(sp)
+    805e124c:	f406                	sd	ra,40(sp)
+    if(bytes_to_pad > 64L)
+    805e124e:	04000713          	li	a4,64
+    bytes_to_pad = 120L - context->buffer_len;
+    805e1252:	8e1d                	sub	a2,a2,a5
+{
+    805e1254:	84aa                	mv	s1,a0
+    805e1256:	842e                	mv	s0,a1
+    if(bytes_to_pad > 64L)
+    805e1258:	00c77563          	bleu	a2,a4,805e1262 <sha256_final+0x22>
+        bytes_to_pad -= 64L;
+    805e125c:	03800613          	li	a2,56
+    805e1260:	8e1d                	sub	a2,a2,a5
+    length_pad = BYTESWAP64(context->total_len);
+    805e1262:	6098                	ld	a4,0(s1)
+    return ((uint64_t)BYTESWAP(b) << 32) | (uint64_t)BYTESWAP(a);
+    805e1264:	ff010337          	lui	t1,0xff010
+    805e1268:	00ff08b7          	lui	a7,0xff0
+    uint32_t a = (uint32_t)(x >> 32);
+    805e126c:	42075593          	srai	a1,a4,0x20
+    uint32_t b = (uint32_t)x;
+    805e1270:	2701                	sext.w	a4,a4
+    return ((uint64_t)BYTESWAP(b) << 32) | (uint64_t)BYTESWAP(a);
+    805e1272:	01871e9b          	slliw	t4,a4,0x18
+    805e1276:	0087181b          	slliw	a6,a4,0x8
+    805e127a:	01859e1b          	slliw	t3,a1,0x18
+    805e127e:	0085951b          	slliw	a0,a1,0x8
+    805e1282:	0087579b          	srliw	a5,a4,0x8
+    805e1286:	0187569b          	srliw	a3,a4,0x18
+    805e128a:	0085d71b          	srliw	a4,a1,0x8
+    805e128e:	0185d59b          	srliw	a1,a1,0x18
+    805e1292:	f0030313          	addi	t1,t1,-256 # ffffffffff00ff00 <context+0xffffffff7ea2df48>
+    805e1296:	0ff88893          	addi	a7,a7,255 # ff00ff <_start-0x7f5eff01>
+    805e129a:	01c76733          	or	a4,a4,t3
+    805e129e:	8dc9                	or	a1,a1,a0
+    805e12a0:	0115f5b3          	and	a1,a1,a7
+    805e12a4:	01d7e7b3          	or	a5,a5,t4
+    805e12a8:	00d866b3          	or	a3,a6,a3
+    805e12ac:	00677733          	and	a4,a4,t1
+    805e12b0:	0067f7b3          	and	a5,a5,t1
+    805e12b4:	0116f6b3          	and	a3,a3,a7
+    805e12b8:	8f4d                	or	a4,a4,a1
+    805e12ba:	8fd5                	or	a5,a5,a3
+    805e12bc:	1702                	slli	a4,a4,0x20
+    805e12be:	9301                	srli	a4,a4,0x20
+    805e12c0:	1782                	slli	a5,a5,0x20
+    805e12c2:	8fd9                	or	a5,a5,a4
+    sha256_update(context, padding, bytes_to_pad);
+    805e12c4:	00000597          	auipc	a1,0x0
+    805e12c8:	7bc58593          	addi	a1,a1,1980 # 805e1a80 <padding>
+    805e12cc:	8526                	mv	a0,s1
+    length_pad = BYTESWAP64(context->total_len);
+    805e12ce:	e43e                	sd	a5,8(sp)
+    sha256_update(context, padding, bytes_to_pad);
+    805e12d0:	00000097          	auipc	ra,0x0
+    805e12d4:	ece080e7          	jalr	-306(ra) # 805e119e <sha256_update>
+    sha256_update(context, &length_pad, 8L);
+    805e12d8:	4621                	li	a2,8
+    805e12da:	002c                	addi	a1,sp,8
+    805e12dc:	8526                	mv	a0,s1
+    805e12de:	00000097          	auipc	ra,0x0
+    805e12e2:	ec0080e7          	jalr	-320(ra) # 805e119e <sha256_update>
+    while(!(sha256->sha_function_reg_0.sha_en))
+    805e12e6:	502c0737          	lui	a4,0x502c0
+    805e12ea:	575c                	lw	a5,44(a4)
+    805e12ec:	8b85                	andi	a5,a5,1
+    805e12ee:	dff5                	beqz	a5,805e12ea <sha256_final+0xaa>
+        ;
+    if(output)
+    805e12f0:	c00d                	beqz	s0,805e1312 <sha256_final+0xd2>
+    {
+        for(i = 0; i < SHA256_HASH_WORDS; i++)
+        {
+            *((uint32_t *)output) = sha256->sha_result[SHA256_HASH_WORDS - i - 1];
+    805e12f2:	4f5c                	lw	a5,28(a4)
+    805e12f4:	c01c                	sw	a5,0(s0)
+    805e12f6:	4f1c                	lw	a5,24(a4)
+    805e12f8:	c05c                	sw	a5,4(s0)
+    805e12fa:	4b5c                	lw	a5,20(a4)
+    805e12fc:	c41c                	sw	a5,8(s0)
+    805e12fe:	4b1c                	lw	a5,16(a4)
+    805e1300:	c45c                	sw	a5,12(s0)
+    805e1302:	475c                	lw	a5,12(a4)
+    805e1304:	c81c                	sw	a5,16(s0)
+    805e1306:	471c                	lw	a5,8(a4)
+    805e1308:	c85c                	sw	a5,20(s0)
+    805e130a:	435c                	lw	a5,4(a4)
+    805e130c:	cc1c                	sw	a5,24(s0)
+    805e130e:	431c                	lw	a5,0(a4)
+    805e1310:	cc5c                	sw	a5,28(s0)
+            output += 4;
+        }
+    }
+}
+    805e1312:	70a2                	ld	ra,40(sp)
+    805e1314:	7402                	ld	s0,32(sp)
+    805e1316:	64e2                	ld	s1,24(sp)
+    805e1318:	6145                	addi	sp,sp,48
+    805e131a:	8082                	ret
+
+00000000805e131c <memcpy>:
+    805e131c:	00a5c7b3          	xor	a5,a1,a0
+    805e1320:	8b9d                	andi	a5,a5,7
+    805e1322:	00c50733          	add	a4,a0,a2
+    805e1326:	e781                	bnez	a5,805e132e <memcpy+0x12>
+    805e1328:	479d                	li	a5,7
+    805e132a:	00c7ee63          	bltu	a5,a2,805e1346 <memcpy+0x2a>
+    805e132e:	87aa                	mv	a5,a0
+    805e1330:	0ae57063          	bleu	a4,a0,805e13d0 <memcpy+0xb4>
+    805e1334:	0005c683          	lbu	a3,0(a1)
+    805e1338:	0785                	addi	a5,a5,1
+    805e133a:	0585                	addi	a1,a1,1
+    805e133c:	fed78fa3          	sb	a3,-1(a5) # 502bffff <_start-0x30320001>
+    805e1340:	fee7eae3          	bltu	a5,a4,805e1334 <memcpy+0x18>
+    805e1344:	8082                	ret
+    805e1346:	00757693          	andi	a3,a0,7
+    805e134a:	87aa                	mv	a5,a0
+    805e134c:	ca91                	beqz	a3,805e1360 <memcpy+0x44>
+    805e134e:	0005c683          	lbu	a3,0(a1)
+    805e1352:	0785                	addi	a5,a5,1
+    805e1354:	0585                	addi	a1,a1,1
+    805e1356:	fed78fa3          	sb	a3,-1(a5)
+    805e135a:	0077f693          	andi	a3,a5,7
+    805e135e:	b7fd                	j	805e134c <memcpy+0x30>
+    805e1360:	ff877693          	andi	a3,a4,-8
+    805e1364:	fc068613          	addi	a2,a3,-64 # ffc0 <_start-0x805d0040>
+    805e1368:	06c7f063          	bleu	a2,a5,805e13c8 <memcpy+0xac>
+    805e136c:	0005b383          	ld	t2,0(a1)
+    805e1370:	0085b283          	ld	t0,8(a1)
+    805e1374:	0105bf83          	ld	t6,16(a1)
+    805e1378:	0185bf03          	ld	t5,24(a1)
+    805e137c:	0205be83          	ld	t4,32(a1)
+    805e1380:	0285be03          	ld	t3,40(a1)
+    805e1384:	0305b303          	ld	t1,48(a1)
+    805e1388:	0385b883          	ld	a7,56(a1)
+    805e138c:	04858593          	addi	a1,a1,72
+    805e1390:	0077b023          	sd	t2,0(a5)
+    805e1394:	ff85b803          	ld	a6,-8(a1)
+    805e1398:	0057b423          	sd	t0,8(a5)
+    805e139c:	01f7b823          	sd	t6,16(a5)
+    805e13a0:	01e7bc23          	sd	t5,24(a5)
+    805e13a4:	03d7b023          	sd	t4,32(a5)
+    805e13a8:	03c7b423          	sd	t3,40(a5)
+    805e13ac:	0267b823          	sd	t1,48(a5)
+    805e13b0:	0317bc23          	sd	a7,56(a5)
+    805e13b4:	04878793          	addi	a5,a5,72
+    805e13b8:	ff07bc23          	sd	a6,-8(a5)
+    805e13bc:	b775                	j	805e1368 <memcpy+0x4c>
+    805e13be:	6190                	ld	a2,0(a1)
+    805e13c0:	07a1                	addi	a5,a5,8
+    805e13c2:	05a1                	addi	a1,a1,8
+    805e13c4:	fec7bc23          	sd	a2,-8(a5)
+    805e13c8:	fed7ebe3          	bltu	a5,a3,805e13be <memcpy+0xa2>
+    805e13cc:	f6e7e4e3          	bltu	a5,a4,805e1334 <memcpy+0x18>
+    805e13d0:	8082                	ret
+    805e13d2:	0000                	unimp
+    805e13d4:	0000                	unimp
+	...
