@@ -47,9 +47,15 @@ You can flash one of example aplications executing:
 * A simple build script **`BUILD.sh`** is provided which builds the **`Kboot`** application.
 * Simply execute `BUILD.sh`
 * **`kboot.kfpkg`** package will be created which includes `bootloader_lo.bin` and `bootloader_hi.bin` binaries and the default configuration.
-* `kboot.kfpkg` can be flashed to the K210 using the included `ktool.py`.<br>
+
+### Flash to K210 board
+
+**`kboot.kfpkg`** can be flashed to the K210 using the included [**`ktool.py`**](https://github.com/loboris/ktool).<br>
 **_Note:_** Do not use standard **`kflash.py`**, **kboot** binaries requires flashing **4KB aligned blocks**, which is not supported by standard `kflash.py`.
+
 <br>
+
+### Examples
 
 Build the **`Kboot`** package:
 
@@ -124,7 +130,7 @@ If no app is found, default app will be run which blinks the LED(s).
 boris@UbuntuMate:/home/kboot/build$ 
 ```
 
-Flash **`Kboot`** packageto K210 board:
+Flash **`Kboot`** package to K210 board:
 
 ```console
 boris@UbuntuMate:/home/kboot/build$ ./ktool.py -p /dev/ttyUSB0 -b 2000000 -t kboot.kfpkg
