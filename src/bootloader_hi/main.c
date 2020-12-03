@@ -98,6 +98,7 @@ static uint32_t *cfg_flash_ptr = (uint32_t *)(SPI3_BASE_ADDR+BOOT_CONFIG_ADDR);
 static uint8_t *cfg_flash_bptr = (uint8_t *)(SPI3_BASE_ADDR+BOOT_CONFIG_ADDR);
 
 static uint32_t i = 0;
+static uint32_t boot_entry = 0;
 static uint32_t cfg_offset = 0;
 static uint32_t offset = 0;
 static uint8_t key = 0;
@@ -341,7 +342,7 @@ int main(void)
         boot_pin = gpiohs_get_pin(GPIO_KEY);
     }
 
-    LOG("\nK210 bootloader by LoBo v.1.4.1\n\n");
+    LOG("\nK210 bootloader by LoBo v.1.4.2\n\n");
 
     LOG("* Find applications in MAIN parameters\n");
 
@@ -365,9 +366,9 @@ check_cfg:
                     // Valid size
                     LOG("@ 0x%08X, size=%u, ", cfg_address, cfg_size);
                     /*
-                     * Basic check passed, now we can check the application's vilidity
+                     * Basic check passed, now we can check the application's validity
                      * If in interractive mode, all applications are checked,
-                     * otherwize, the application is checked only if flagged as active
+                     * otherwise, the application is checked only if flagged as active
                      */
                     if ((cfg_magic & CFG_APP_FLAG_ACTIVE) || (boot_pin == 0)) {
                         // ** Check if valid application
@@ -391,7 +392,7 @@ check_cfg:
                             app_flash_start = cfg_address;
                         }
                         if (boot_pin > 0) {
-                            // Active application found and cheched and not in interractive mode
+                            // Active application found and checked and not in interractive mode
                             LOG("ACTIVE\n");
                             break;
                         }
@@ -409,10 +410,10 @@ check_cfg:
     }
 
     // check if any valid application was found
-    for (i = 0; i < BOOT_CONFIG_ITEMS; i++) {
-        if (available_apps[i]) break;
+    for (boot_entry = 0; boot_entry < BOOT_CONFIG_ITEMS; boot_entry++) {
+        if (available_apps[boot_entry]) break;
     }
-    if ((app_flash_start == DEFAULT_APP_ADDR) && (i >= BOOT_CONFIG_ITEMS)) {
+    if ((app_flash_start == DEFAULT_APP_ADDR) && (boot_entry >= BOOT_CONFIG_ITEMS)) {
         // No valid application found
         if (cfg_offset == 0) {
             // no valid entry found in main config sector, check the backup one
@@ -456,6 +457,7 @@ check_cfg:
                             // get application's size and address in Flash
                             app_size = flash2uint32(cfg_address+1);
                             app_flash_start = cfg_address;
+                            boot_entry = char_in;
                             char_in += 0x30;
                             break;
                         }
@@ -475,8 +477,10 @@ check_cfg:
         if ((app_size >= MIN_APP_FLASH_SIZE) && (app_size <= MAX_APP_FLASH_SIZE)) {
             cfg_size = app_size;
             cfg_address = app_flash_start;
-            // Check default application
-            if (app_sha256()) key = 0;
+            // Check default application if no app selected
+            if ((boot_entry < BOOT_CONFIG_ITEMS) || app_sha256()) {
+                key = 0;
+            }
         }
         if (key) {
             // Check failed
