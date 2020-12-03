@@ -48,13 +48,12 @@ The following SPI Flash layout must be used when using **Kboot*
 
 | From | To | Length | Comment |
 | ---: | ---: | ---: | :--- |
-| `0x00000000` | `0x0000FFFF` | 64K | **Kboot** application code |
-| `0x00010000` | `0x0001FFFF` | 64K | reserved for future use |
-| `0x00020000` | `0x00020FFF` | 4K | main **boot configuration** sector |
-| `0x00021000` | `0x00021FFF` | 4K | backup **boot configuration** sector |
-| `0x00022000` | `0x0002FFFF` | 56K | reserved, user data etc. |
-| `0x00030000` | `0x0007FFFF` | 320K | **default application** code |
-| `0x00080000` | `Flash end` | --- | user area, application(s) code, file system(s), user data etc. |
+| `0x00000000` | `0x00003FFF` | 64K | **Kboot** application code |
+| `0x00004000` | `0x00004FFF` | 4K | main **boot configuration** sector |
+| `0x00005000` | `0x00005FFF` | 4K | backup **boot configuration** sector |
+| `0x00006000` | `0x0000FFFF` | 40K | reserved |
+| `0x00010000` | `DEF_END`    | ---  | **default application** code |
+| `DEF_END`    | `Flash end` | --- | user area, application(s) code, file system(s), user data etc. |
 
 <br>
 
